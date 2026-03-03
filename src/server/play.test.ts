@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'bun:test'
 import WebSocket from 'ws'
 import * as t from './types'
 import * as scoring from './scoring'
-import { onTickGame, onClientMessage, currentGameState, isCullable, startReaper } from './play'
+import { onTickGame, onClientMessage, currentGameState, isCullable, startReaper, checkPlayAgainVotes, onPlayerDisconnect } from './play'
 
 function mockWs(readyState = WebSocket.OPEN): WebSocket {
   return { readyState, send: vi.fn() } as unknown as WebSocket
@@ -220,5 +220,91 @@ describe('game culling', () => {
     } finally {
       clearInterval(timer)
     }
+  })
+})
+
+function playAgainPhase(melded = true, meldRound: number | null = 3): t.Phase {
+  return {
+    type: 'PLAY_AGAIN',
+    isLeaving: new Set(),
+    isPlayingAgain: new Set(),
+    melded,
+    meldRound,
+  }
+}
+
+describe('play again voting', () => {
+  it('all vote yes → resets game to LOBBY', () => {
+    const game = makeGame([{ id: 'a' }, { id: 'b' }])
+    game.phase = playAgainPhase()
+    game.previousScores = [{ prompt: 'x', guessesAndScores: [] }]
+    game.centroidHistory = ['cat', 'dog']
+    game.players[0].previousScoresAndGuesses = [[5, 'cat']]
+    const state = makeState([['g', game]])
+
+    onClientMessage(state, { type: 'PLAY_AGAIN_VOTE', gameId: 'g', playerId: 'a', playAgain: true }, mockWs())
+    expect(game.phase.type).toBe('PLAY_AGAIN')
+
+    onClientMessage(state, { type: 'PLAY_AGAIN_VOTE', gameId: 'g', playerId: 'b', playAgain: true }, mockWs())
+    expect(game.phase.type).toBe('LOBBY')
+    expect(game.previousScores).toEqual([])
+    expect(game.centroidHistory).toEqual([])
+    expect(game.players[0].previousScoresAndGuesses).toEqual([])
+    expect(state.games.has('g')).toBe(true)
+  })
+
+  it('vote leave → player moved to lounge, remaining player causes game deletion', () => {
+    const wsA = mockWs()
+    const wsB = mockWs()
+    const game = makeGame([{ id: 'a', ws: wsA }, { id: 'b', ws: wsB }])
+    game.phase = playAgainPhase()
+    const state = makeState([['g', game]])
+
+    onClientMessage(state, { type: 'PLAY_AGAIN_VOTE', gameId: 'g', playerId: 'a', playAgain: false }, mockWs())
+    expect(state.lounge.has('a')).toBe(true)
+    expect(game.players).toHaveLength(1)
+
+    onClientMessage(state, { type: 'PLAY_AGAIN_VOTE', gameId: 'g', playerId: 'b', playAgain: true }, mockWs())
+    expect(state.games.has('g')).toBe(false)
+  })
+
+  it('disconnect during PLAY_AGAIN counts as leaving', () => {
+    const game = makeGame([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
+    game.phase = playAgainPhase()
+    const state = makeState([['g', game]])
+
+    onPlayerDisconnect('c', 'g', game, state)
+    expect(game.players).toHaveLength(2)
+
+    onClientMessage(state, { type: 'PLAY_AGAIN_VOTE', gameId: 'g', playerId: 'a', playAgain: true }, mockWs())
+    onClientMessage(state, { type: 'PLAY_AGAIN_VOTE', gameId: 'g', playerId: 'b', playAgain: true }, mockWs())
+    expect(game.phase.type).toBe('LOBBY')
+  })
+
+  it('meld triggers PLAY_AGAIN instead of endGame', async () => {
+    const game = makeGame([{ id: 'a' }, { id: 'b' }])
+    game.currentPrompt = 'animals'
+    game.phase = {
+      type: 'REVEAL',
+      round: 5,
+      prompt: 'animals',
+      secsLeft: 0,
+      isReady: new Set(),
+      scores: new Map([['a', 10], ['b', 10]]),
+      positions: new Map([['a', [0, 0]], ['b', [0, 0]]]),
+      guesses: new Map([['a', 'cat'], ['b', 'cat']]),
+      centroidWord: 'cat',
+      melded: true,
+    }
+    game.centroidHistory = ['dog', 'cat']
+    const state = makeState([['g', game]])
+
+    onTickGame('g', game, 0, 1, state)
+    expect(game.phase.type).toBe('PLAY_AGAIN')
+    if (game.phase.type === 'PLAY_AGAIN') {
+      expect(game.phase.melded).toBe(true)
+      expect(game.phase.meldRound).toBe(5)
+    }
+    expect(state.games.has('g')).toBe(true)
   })
 })

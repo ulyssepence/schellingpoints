@@ -84,7 +84,10 @@ export function onTickGame(gameId: t.GameId, game: t.Game, timeSecs: number, del
     }
 
     case 'CONTINUE': {
-      // No timer — waiting for player votes
+      break
+    }
+
+    case 'PLAY_AGAIN': {
       break
     }
   }
@@ -311,6 +314,38 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
       checkContinueVotes(message.gameId, game, state)
       break
     }
+
+    case 'PLAY_AGAIN_VOTE': {
+      const game = state.games.get(message.gameId)
+      if (!game || game.phase.type !== 'PLAY_AGAIN') break
+
+      if (message.playAgain) {
+        game.phase.isPlayingAgain.add(message.playerId)
+      } else {
+        game.phase.isLeaving.add(message.playerId)
+        const player = game.players.find(p => p.id === message.playerId)
+        if (player) {
+          game.players = game.players.filter(p => p.id !== message.playerId)
+          state.lounge.set(message.playerId, {
+            name: player.name,
+            mood: player.mood,
+            webSocket: player.webSocket,
+          })
+          const loungeMsg: t.ToClientMessage = {
+            type: 'LOUNGE',
+            loungingPlayers: [...state.lounge.entries()].map(
+              ([id, info]) => [id, info.name, info.mood]
+            ),
+          }
+          player.webSocket.send(JSON.stringify(loungeMsg))
+          state.broadcastLoungeChange()
+          game.broadcast(game.memberChangeMessage(message.gameId))
+        }
+      }
+
+      checkPlayAgainVotes(message.gameId, game, state)
+      break
+    }
   }
 }
 
@@ -380,7 +415,66 @@ export function checkContinueVotes(
       game.lastStateChangeAt = Date.now()
       game.broadcast(currentGameState(gameId, game))
     } else {
-      // Not enough players — game ends
+      transitionToPlayAgain(gameId, game, false, null)
+    }
+  }
+}
+
+function transitionToPlayAgain(
+  gameId: t.GameId,
+  game: t.Game,
+  melded: boolean,
+  meldRound: number | null,
+) {
+  game.phase = {
+    type: 'PLAY_AGAIN',
+    isLeaving: new Set(),
+    isPlayingAgain: new Set(),
+    melded,
+    meldRound,
+  }
+  for (const player of game.players) {
+    game.unicast(player.id, {
+      type: 'GAME_END',
+      gameId,
+      melded,
+      meldRound,
+      centroidHistory: [...game.centroidHistory],
+      playerHistory: buildPlayerHistory(player, game),
+    })
+  }
+}
+
+export function checkPlayAgainVotes(
+  gameId: t.GameId,
+  game: t.Game,
+  state: t.State,
+) {
+  if (game.phase.type !== 'PLAY_AGAIN') return
+
+  const liveIds = game.players
+    .filter(p => p.webSocket.readyState === WebSocket.OPEN)
+    .map(p => p.id)
+
+  const allVoted = liveIds.every(id =>
+    game.phase.type === 'PLAY_AGAIN' && game.phase.isPlayingAgain.has(id)
+  )
+
+  if (allVoted && liveIds.length > 0) {
+    if (game.phase.isPlayingAgain.size >= 2) {
+      game.previousScores = []
+      game.centroidHistory = []
+      game.scoringRetries = 0
+      for (const player of game.players) {
+        player.previousScoresAndGuesses = []
+      }
+      const prompt = pickRandomPrompt(state.categories)
+      game.currentPrompt = prompt
+      game.phase = { type: 'LOBBY', isReady: new Set() }
+      game.lastStateChangeAt = Date.now()
+      game.broadcast(currentGameState(gameId, game))
+      game.broadcast(game.memberChangeMessage(gameId))
+    } else {
       endGame(gameId, game, state, false)
     }
   }
@@ -500,8 +594,7 @@ function goToNextRound(gameId: t.GameId, game: t.Game, state: t.State) {
   const round = phase.round + 1
 
   if (phase.melded) {
-    // Meld detected — end game with celebration
-    endGame(gameId, game, state, true, phase.round)
+    transitionToPlayAgain(gameId, game, true, phase.round)
     return
   }
 
@@ -600,6 +693,13 @@ export function onPlayerDisconnect(
       checkContinueVotes(gameId, game, state)
       break
     }
+
+    case 'PLAY_AGAIN': {
+      game.phase.isLeaving.add(playerId)
+      game.broadcast(game.memberChangeMessage(gameId))
+      checkPlayAgainVotes(gameId, game, state)
+      break
+    }
   }
 }
 
@@ -678,8 +778,13 @@ export function currentGameState(gameId: t.GameId, game: t.Game): t.ToClientMess
       }
     }
     case 'CONTINUE': {
-      // CONTINUE phase uses per-player unicast (CONTINUE_PROMPT), not broadcast.
-      // Safe fallback for reconnecting clients during CONTINUE — send LOBBY_STATE.
+      return {
+        type: 'LOBBY_STATE',
+        gameId,
+        isReady: [],
+      }
+    }
+    case 'PLAY_AGAIN': {
       return {
         type: 'LOBBY_STATE',
         gameId,

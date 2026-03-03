@@ -73,6 +73,15 @@ export function GameEnd(props: Props) {
     setVoted(true)
   }
 
+  function handlePlayAgainVote(playAgain: boolean) {
+    if (playAgain) {
+      mailbox.send({ type: 'PLAY_AGAIN_VOTE', gameId, playerId, playAgain: true })
+      setVoted(true)
+    } else {
+      mailbox.send({ type: 'PLAY_AGAIN_VOTE', gameId, playerId, playAgain: false })
+    }
+  }
+
   // Continue prompt screen
   if (props.isContinue) {
     return (
@@ -108,7 +117,7 @@ export function GameEnd(props: Props) {
   return (
     <div className="screen game-end">
       <div className="screen-topbar">
-        <button className="btn-back" onClick={handleBackToLounge}>‹</button>
+        <button className="btn-back" onClick={() => handlePlayAgainVote(false)}>‹</button>
         <InstructionsPopover />
       </div>
       <div className="screen-header">
@@ -124,7 +133,14 @@ export function GameEnd(props: Props) {
       <HistoryTable playerHistory={playerHistory} centroidHistory={centroidHistory} meldRound={meldRound} />
 
       <div className="screen-footer">
-        <button className="btn" onClick={handleBackToLounge}>Back to Lounge</button>
+        {voted ? (
+          <p className="waiting-msg">Waiting for others...</p>
+        ) : (
+          <>
+            <button className="btn" onClick={() => handlePlayAgainVote(true)}>Play Again</button>
+            <button className="btn" onClick={() => handlePlayAgainVote(false)}>Back to Lounge</button>
+          </>
+        )}
       </div>
     </div>
   )

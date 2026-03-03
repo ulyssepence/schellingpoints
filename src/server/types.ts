@@ -23,6 +23,7 @@ export type Phase =
   | { type: 'GUESSES', round: number, prompt: string, secsLeft: number, guesses: Map<t.PlayerId, string> }
   | { type: 'REVEAL', round: number, prompt: string, isReady: Set<t.PlayerId>, secsLeft: number, scores: Map<t.PlayerId, number>, positions: Map<t.PlayerId, [number, number]>, guesses: Map<t.PlayerId, string>, centroidWord: string, melded: boolean }
   | { type: 'CONTINUE', isLeaving: Set<t.PlayerId>, isContinuing: Set<t.PlayerId> }
+  | { type: 'PLAY_AGAIN', isLeaving: Set<t.PlayerId>, isPlayingAgain: Set<t.PlayerId>, melded: boolean, meldRound: number | null }
 
 export interface RoundScore {
   prompt: string;

@@ -12,6 +12,7 @@ export type ToServerMessage =
   | { type: 'REVEAL_READY', gameId: GameId, playerId: PlayerId, isReady: boolean }
   | { type: 'GUESS', gameId: GameId, playerId: PlayerId, guess: string }
   | { type: 'CONTINUE_VOTE', gameId: GameId, playerId: PlayerId, continuePlay: boolean }
+  | { type: 'PLAY_AGAIN_VOTE', gameId: GameId, playerId: PlayerId, playAgain: boolean }
 
 export type ToClientMessage =
   | { type: 'LOUNGE', loungingPlayers: [PlayerId, PlayerName, Mood][] }
