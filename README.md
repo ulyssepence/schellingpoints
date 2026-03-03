@@ -28,11 +28,9 @@ bun run dev
 
 Requires [Ollama](https://ollama.com) running locally with the `nomic-embed-text` model for scoring.
 
-## Credits
+## Team
 
-Built by:
-
-- **Hart Phoenix** ([@hartphoenix](https://github.com/hartphoenix))
-- **Marianne** ([@thrialectics](https://github.com/thrialectics))
-- **Julianna** ([@jannar18](https://github.com/jannar18))
-- **Ulysse Pence** ([@ulyssepence](https://github.com/ulyssepence))
+- [Hart](https://twitter.com/puheenix)
+- [Marianne](twitter.com/thrialectics)
+- [Julianna](https://github.com/jannar18)
+- [Ulysse](https://twitter.com/ulyssepence)
