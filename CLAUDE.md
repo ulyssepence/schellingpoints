@@ -3,11 +3,12 @@
 Jackbox-style mobile word game. Players submit answers to category prompts,
 responses are scored by semantic clustering. TypeScript throughout.
 
-- **Frontend:** React 19 + React Router 7 + Vite
+- **Frontend:** React 19 + React Router 7 + Vite 7
 - **Backend:** Express 5 + express-ws (WebSocket)
-- **Runtime:** Bun
+- **Package manager:** Bun (server runs via `tsx`, not `bun` directly)
 - **State:** In-memory (no database)
 - **Architecture:** `docs/solutions/2026-02-18-codebase-review-handoff.md`
+
 
 ## Team
 
@@ -97,6 +98,7 @@ WIP limits).
 | `docs/brainstorms/*.md` | Ephemeral | Delete after corresponding PR merges (if no other branches reference it) |
 | `docs/plans/*.md` | Ephemeral | Delete after corresponding PR merges (if no other branches reference it) |
 | `docs/solutions/*.md` | Persistent | Never — institutional knowledge |
+| `docs/conversations/*.md` | Auto-generated | Claude Code session logs — no manual cleanup needed |
 | `.claude/todos/agent/*` | Ephemeral | Delete after agent completes work |
 
 ## Triage & Assignment
