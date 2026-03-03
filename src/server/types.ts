@@ -37,6 +37,7 @@ export class Game {
   centroidHistory: string[] = []
   currentPrompt = ''
   scoringRetries = 0
+  lastStateChangeAt = Date.now()
 
   unicast(playerId: t.PlayerId, message: t.ToClientMessage) {
     const player = this.players.find(info => info.id === playerId)

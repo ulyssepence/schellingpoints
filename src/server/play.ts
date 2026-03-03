@@ -59,6 +59,7 @@ export function onTickGame(gameId: t.GameId, game: t.Game, timeSecs: number, del
         game.centroidHistory = []
         game.scoringRetries = 0
         game.phase = newGuessPhase(0, prompt)
+        game.lastStateChangeAt = Date.now()
         game.broadcast(currentGameState(gameId, game))
       }
       break
@@ -376,6 +377,7 @@ export function checkContinueVotes(
       // Continue — start round 21+ with last centroid as prompt
       const nextRound = game.centroidHistory.length
       game.phase = newGuessPhase(nextRound, game.currentPrompt)
+      game.lastStateChangeAt = Date.now()
       game.broadcast(currentGameState(gameId, game))
     } else {
       // Not enough players — game ends
@@ -455,6 +457,7 @@ async function scoreRound(gameId: t.GameId, game: t.Game, state: t.State) {
   }
 
   game.scoringInProgress = false
+  game.lastStateChangeAt = Date.now()
   game.broadcast(currentGameState(gameId, game))
 }
 
@@ -523,6 +526,7 @@ function goToNextRound(gameId: t.GameId, game: t.Game, state: t.State) {
   // Next round: centroid word becomes the new prompt
   game.currentPrompt = phase.centroidWord
   game.phase = newGuessPhase(round, phase.centroidWord)
+  game.lastStateChangeAt = Date.now()
   game.broadcast(currentGameState(gameId, game))
 }
 
@@ -542,9 +546,7 @@ export function onPlayerDisconnect(
 
   game.players.splice(playerIdx, 1)
 
-  // If no players remain, delete the game entirely
   if (game.players.length === 0) {
-    state.games.delete(gameId)
     return
   }
 
@@ -599,6 +601,34 @@ export function onPlayerDisconnect(
       break
     }
   }
+}
+
+export const DEFAULT_CULL_INTERVAL_MS = 60_000
+export const DEFAULT_GAME_TTL_MS = 24 * 60 * 60 * 1000
+
+export function isCullable(game: t.Game, now: number, ttlMs = DEFAULT_GAME_TTL_MS): boolean {
+  return now - game.lastStateChangeAt > ttlMs
+}
+
+export interface ReaperOptions {
+  ttlMs?: number
+  intervalMs?: number
+}
+
+export function startReaper(state: t.State, opts: ReaperOptions = {}) {
+  const ttlMs = opts.ttlMs ?? DEFAULT_GAME_TTL_MS
+  const intervalMs = opts.intervalMs ?? DEFAULT_CULL_INTERVAL_MS
+
+  return setInterval(() => {
+    const now = Date.now()
+    for (const [gameId, game] of state.games) {
+      if (isCullable(game, now, ttlMs)) {
+        for (const p of game.players) p.webSocket.terminate()
+        state.games.delete(gameId)
+        console.log('culled stale game', gameId)
+      }
+    }
+  }, intervalMs)
 }
 
 export function currentGameState(gameId: t.GameId, game: t.Game): t.ToClientMessage {

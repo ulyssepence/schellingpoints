@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'bun:test'
 import WebSocket from 'ws'
 import * as t from './types'
 import * as scoring from './scoring'
-import { onTickGame, onClientMessage, currentGameState } from './play'
+import { onTickGame, onClientMessage, currentGameState, isCullable, startReaper } from './play'
 
 function mockWs(readyState = WebSocket.OPEN): WebSocket {
   return { readyState, send: vi.fn() } as unknown as WebSocket
@@ -146,5 +146,79 @@ describe('scoreRound via all guesses submitted', () => {
     await new Promise(r => setTimeout(r, 10))
 
     expect(game.phase.type).toBe('REVEAL')
+  })
+})
+
+const GAME_TTL_MS = 24 * 60 * 60 * 1000
+
+describe('game culling', () => {
+  it('isCullable returns true for games older than 24h', () => {
+    const game = makeGame([{ id: 'a' }])
+    game.lastStateChangeAt = Date.now() - GAME_TTL_MS - 3600_000
+    expect(isCullable(game, Date.now())).toBe(true)
+  })
+
+  it('isCullable returns false for games younger than 24h', () => {
+    const game = makeGame([{ id: 'a' }])
+    game.lastStateChangeAt = Date.now() - GAME_TTL_MS + 3600_000
+    expect(isCullable(game, Date.now())).toBe(false)
+  })
+
+  it('reaper deletes stale games and terminates sockets', () => {
+    const ws = mockWs()
+    ;(ws as any).terminate = vi.fn()
+    const game = makeGame([{ id: 'a', ws }])
+    game.lastStateChangeAt = Date.now() - GAME_TTL_MS - 1000
+    const state = makeState([['stale-game', game]])
+
+    const now = Date.now()
+    for (const [gameId, g] of state.games) {
+      if (isCullable(g, now)) {
+        for (const p of g.players) (p.webSocket as any).terminate()
+        state.games.delete(gameId)
+      }
+    }
+
+    expect(state.games.size).toBe(0)
+    expect((ws as any).terminate).toHaveBeenCalled()
+  })
+
+  it('phase transition resets lastStateChangeAt', async () => {
+    const game = makeGame([{ id: 'a' }, { id: 'b' }])
+    game.currentPrompt = 'animals'
+    game.phase = guessPhase([['a', 'cat'], ['b', 'dog']])
+    ;(game.phase as any).secsLeft = 0
+    game.lastStateChangeAt = Date.now() - GAME_TTL_MS - 1000
+
+    const state = makeState([['test-game', game]])
+    onTickGame('test-game', game, 0, 1, state)
+    await new Promise(r => setTimeout(r, 10))
+
+    expect(game.phase.type).toBe('REVEAL')
+    expect(Date.now() - game.lastStateChangeAt).toBeLessThan(5000)
+  })
+
+  it('startReaper culls expired games on its interval', async () => {
+    const TTL = 200
+    const INTERVAL = 50
+
+    const ws = mockWs()
+    ;(ws as any).terminate = vi.fn()
+    const staleGame = makeGame([{ id: 'a', ws }])
+    staleGame.lastStateChangeAt = Date.now() - TTL - 100
+
+    const freshGame = makeGame([{ id: 'b' }])
+
+    const state = makeState([['stale', staleGame], ['fresh', freshGame]])
+
+    const timer = startReaper(state, { ttlMs: TTL, intervalMs: INTERVAL })
+    try {
+      await new Promise(r => setTimeout(r, INTERVAL * 3))
+      expect(state.games.has('stale')).toBe(false)
+      expect(state.games.has('fresh')).toBe(true)
+      expect((ws as any).terminate).toHaveBeenCalled()
+    } finally {
+      clearInterval(timer)
+    }
   })
 })

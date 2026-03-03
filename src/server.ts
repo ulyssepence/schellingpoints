@@ -41,5 +41,6 @@ api.addStatic(
 )
 
 play.startTicking(state, 100)
+play.startReaper(state)
 
 app.listen(8000, '0.0.0.0')
