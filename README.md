@@ -1,12 +1,38 @@
-# schelling-points
-A Jackbox TV-like mobile word game.
+# Schelling Points
 
-## Docker
+A multiplayer word game where players try to converge on the same answer. Each round, everyone sees a category prompt and submits a word. Responses are scored by how semantically close they are to each other — the more players cluster around the same idea, the higher everyone scores. Think of it as a cooperative game about reading the room.
 
-Requires [Ollama](https://ollama.com) running locally to generate vocab embeddings.
+Play it at [schellingpoints.app](https://schellingpoints.app).
+
+## How it works
+
+1. Create a game and share the link or QR code
+2. Everyone sees the same prompt (e.g. "Something you'd find in a kitchen")
+3. Each player submits a one-word answer
+4. Answers are scored by semantic similarity — words that are closer in meaning score higher
+5. The group's centroid (average meaning) becomes the next round's prompt
+6. If everyone converges on the same word, you've achieved a **mind meld**
+
+## Stack
+
+- **Frontend:** React
+- **Backend:** Express
+- **Scoring:** Word embeddings via Ollama (`nomic-embed-text`)
+
+## Development
 
 ```bash
-OLLAMA_URL=http://localhost:11434 bun run scripts/build-vocab-embeddings.ts
-docker build -t schellingpoint .
-docker run -p 8000:8000 schellingpoint
+bun install
+bun run dev
 ```
+
+Requires [Ollama](https://ollama.com) running locally with the `nomic-embed-text` model for scoring.
+
+## Credits
+
+Built by:
+
+- **Hart Phoenix** ([@hartphoenix](https://github.com/hartphoenix))
+- **Marianne** ([@thrialectics](https://github.com/thrialectics))
+- **Julianna** ([@jannar18](https://github.com/jannar18))
+- **Ulysse Pence** ([@ulyssepence](https://github.com/ulyssepence))
