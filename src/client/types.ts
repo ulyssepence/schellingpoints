@@ -31,8 +31,8 @@ export function initialState(): State {
   const originalOnOpen = ws.onopen
   ws.onopen = (ev) => {
     originalOnOpen?.call(ws, ev)
-    updater.notifyReady()
   }
+  updater.notifyReady()
 
   const playerId = localStorage.getItem('playerId') ?? crypto.randomUUID()
   const playerName = localStorage.getItem('playerName') ?? ''
