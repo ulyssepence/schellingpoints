@@ -31,6 +31,6 @@ Requires [Ollama](https://ollama.com) running locally with the `nomic-embed-text
 ## Team
 
 - [Hart](https://twitter.com/puheenix)
-- [Marianne](twitter.com/thrialectics)
-- [Julianna](https://github.com/jannar18)
+- [Julianna](https://twitter.com/jannaaar)
+- [Marianne](https://twitter.com/thrialectics)
 - [Ulysse](https://twitter.com/ulyssepence)
