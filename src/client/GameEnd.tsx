@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as t from './types'
+import * as updater from './updater'
 import { Box } from './mail'
 import { InstructionsPopover } from './InstructionsPopover'
 
@@ -64,7 +65,8 @@ export function GameEnd(props: Props) {
   const { gameId, playerId, playerName, mood, mailbox, centroidHistory, playerHistory } = props
   const [voted, setVoted] = React.useState(false)
 
-  function handleBackToLounge() {
+  async function handleBackToLounge() {
+    await updater.applyPendingUpdate()
     mailbox.send({ type: 'JOIN_LOUNGE', playerId, playerName, mood })
   }
 
@@ -73,11 +75,12 @@ export function GameEnd(props: Props) {
     setVoted(true)
   }
 
-  function handlePlayAgainVote(playAgain: boolean) {
+  async function handlePlayAgainVote(playAgain: boolean) {
     if (playAgain) {
       mailbox.send({ type: 'PLAY_AGAIN_VOTE', gameId, playerId, playAgain: true })
       setVoted(true)
     } else {
+      await updater.applyPendingUpdate()
       mailbox.send({ type: 'PLAY_AGAIN_VOTE', gameId, playerId, playAgain: false })
     }
   }

@@ -9,3 +9,12 @@ export function notifyReady() {
   ready = true
   CapacitorUpdater.notifyAppReady()
 }
+
+export async function applyPendingUpdate() {
+  if (!Capacitor.isNativePlatform()) return
+  try {
+    const next = await CapacitorUpdater.getNextBundle()
+    if (!next) return
+    await CapacitorUpdater.reload()
+  } catch {}
+}
