@@ -11,16 +11,6 @@ import { ScreenBackground } from './client/ScreenBackground'
 import * as haptics from './client/haptics'
 import { PlayerRing } from "./client/PlayerRing"
 import { MoodPicker } from './client/MoodPicker'
-import '../static/styles/global.css'
-import '../static/styles/lounge.css'
-import '../static/styles/lobby.css'
-import '../static/styles/guesses.css'
-import '../static/styles/reveal.css'
-import '../static/styles/game-end.css'
-import '../static/styles/mood-picker.css'
-import '../static/styles/instructions.css'
-import '../static/styles/screen-background.css'
-import '../static/styles/radial-visualization.css'
 
 const router = Router.createBrowserRouter([
   {
@@ -155,7 +145,7 @@ function App({ gameId }: Props) {
       playerId: state.playerId,
       playerName: playerName,
       mood: currentMood,
-      clientVersion: import.meta.env.VITE_APP_VERSION,
+      clientVersion: import.meta.env.APP_VERSION,
     })
   }, [gameId, playerName])
 

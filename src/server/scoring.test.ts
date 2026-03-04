@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, afterEach } from 'bun:test'
 import { cosineSimilarity, centroid, similarityToScore, scoreGuesses } from './scoring'
 import * as config from '../config'
 
@@ -46,12 +46,14 @@ describe('similarityToScore', () => {
 })
 
 describe('scoreGuesses', () => {
+  const originalFetch = globalThis.fetch
   const mockFetch = (embeddings: number[][]) => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    globalThis.fetch = (() => Promise.resolve({
       ok: true,
       json: async () => ({ embeddings }),
-    }))
+    })) as any
   }
+  afterEach(() => { globalThis.fetch = originalFetch })
 
   it('returns empty scores and positions for no guesses', async () => {
     const result = await scoreGuesses(new Map())

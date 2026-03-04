@@ -22,7 +22,7 @@ computeChecksum()
 export function addRoutes(app: express.Application) {
   app.post('/api/updates/check', (req, res) => {
     const { version_name } = req.body ?? {}
-    const currentVersion = process.env.VITE_APP_VERSION
+    const currentVersion = process.env.APP_VERSION
 
     if (!cachedChecksum || !currentVersion || version_name === currentVersion) {
       res.json({})

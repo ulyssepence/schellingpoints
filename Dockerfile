@@ -1,7 +1,7 @@
 FROM oven/bun AS build
 WORKDIR /app
-ARG VITE_APP_VERSION=dev
-ENV VITE_APP_VERSION=$VITE_APP_VERSION
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --ignore-scripts
 COPY . .
@@ -10,8 +10,8 @@ RUN bunx @capgo/cli bundle zip --path dist --name bundle && mv bundle.zip dist/b
 
 FROM oven/bun
 WORKDIR /app
-ARG VITE_APP_VERSION=dev
-ENV VITE_APP_VERSION=$VITE_APP_VERSION
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/dist dist
 COPY --from=build /app/src src

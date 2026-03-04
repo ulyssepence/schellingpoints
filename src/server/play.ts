@@ -167,7 +167,7 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
     }
 
     case 'SUBSCRIBE_GAME': {
-      const serverVersion = process.env.VITE_APP_VERSION
+      const serverVersion = process.env.APP_VERSION
       if (message.clientVersion && serverVersion && message.clientVersion !== serverVersion) {
         webSocket.send(JSON.stringify({ type: 'VERSION_MISMATCH' } satisfies t.ToClientMessage))
         return

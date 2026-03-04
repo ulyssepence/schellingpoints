@@ -24,7 +24,7 @@ export type State = {
 
 export function initialState(): State {
   const audioPlayer = new audio.Player('/static')
-  const apiHost = import.meta.env.VITE_API_HOST || window.location.host
+  const apiHost = import.meta.env.API_HOST || window.location.host
   const wsProto = apiHost.startsWith('localhost') ? 'ws' : 'wss'
   const ws = new WebSocket(`${wsProto}://${apiHost}/ws`)
   const mailbox = new mail.Box(ws)
