@@ -2,7 +2,7 @@
 
 Jackbox-style mobile word game. Players submit answers to category prompts, responses are scored by semantic clustering. TypeScript throughout.
 
-- **Frontend:** React 19 + React Router 7 + Vite 7
+- **Frontend:** React 19 + React Router 7 + esbuild
 - **Backend:** Express 5 + express-ws (WebSocket)
 - **Package manager:** Bun (server runs via `tsx`, not `bun` directly)
 - **State:** In-memory (no database)

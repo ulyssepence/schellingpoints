@@ -28,6 +28,14 @@ bun run dev
 
 Requires [Ollama](https://ollama.com) running locally with the `nomic-embed-text` model for scoring.
 
+### E2E tests
+
+```bash
+bun run test:e2e
+```
+
+Runs a multi-player Playwright test against the full stack. Ollama must be running locally.
+
 ## Team
 
 - [Hart](https://twitter.com/puheenix)
