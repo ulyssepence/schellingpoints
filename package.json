@@ -11,7 +11,8 @@
     "setup-ollama": "bash scripts/setup-ollama.sh",
     "postinstall": "bash scripts/setup-ollama.sh",
     "cap:build": "API_HOST=schellingpoints.app tsx scripts/build.ts && npx cap sync",
-    "cap:open": "npx cap open ios"
+    "cap:open": "npx cap open ios",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@capacitor/core": "^8.1.0",
@@ -29,14 +30,15 @@
   "devDependencies": {
     "@capacitor/cli": "^8.1.0",
     "@capgo/cli": "^7.84.2",
+    "@playwright/test": "^1.58.2",
     "@types/express": "^5.0.6",
     "@types/express-ws": "^3.0.6",
     "@types/howler": "^2.2.12",
     "@types/node": "^25.2.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "esbuild": "^0.25.0",
     "concurrently": "^9.2.1",
+    "esbuild": "^0.25.0",
     "express": "^5.2.1",
     "express-ws": "^5.0.2",
     "tsx": "^4.21.0"

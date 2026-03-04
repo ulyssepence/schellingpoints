@@ -5,7 +5,7 @@ ENV APP_VERSION=$APP_VERSION
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --ignore-scripts
 COPY . .
-RUN bun run build
+RUN bun scripts/build.ts
 RUN bunx @capgo/cli bundle zip --path dist --name bundle && mv bundle.zip dist/bundle.zip
 
 FROM oven/bun

@@ -46,4 +46,5 @@ api.addStatic(
 play.startTicking(state, 100)
 play.startReaper(state)
 
-app.listen(8000, '0.0.0.0')
+const port = Number(process.env.PORT) || 8000
+app.listen(port, '0.0.0.0')
