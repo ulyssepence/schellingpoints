@@ -1,5 +1,6 @@
 import express from 'express'
 import * as api from './server/api'
+import * as updates from './server/updates'
 import * as names from './server/names'
 import * as play from './server/play'
 import * as t from './server/types'
@@ -35,6 +36,8 @@ api.addWebsockets(
   state,
   app,
 )
+
+updates.addRoutes(app)
 
 api.addStatic(
   app,

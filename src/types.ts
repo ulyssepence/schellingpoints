@@ -7,7 +7,7 @@ export type ToServerMessage =
   | { type: 'JOIN_LOUNGE', playerId: PlayerId, playerName: PlayerName, mood: Mood }
   | { type: 'SET_PLAYER_INFO', gameId?: GameId, playerId: PlayerId, playerName: PlayerName, mood: Mood }
   | { type: 'NEW_GAME', playerId: PlayerId }
-  | { type: 'SUBSCRIBE_GAME', gameId: GameId, playerId: PlayerId, playerName: PlayerName, mood: Mood }
+  | { type: 'SUBSCRIBE_GAME', gameId: GameId, playerId: PlayerId, playerName: PlayerName, mood: Mood, clientVersion?: string }
   | { type: 'LOBBY_READY', gameId: GameId, playerId: PlayerId, isReady: boolean }
   | { type: 'REVEAL_READY', gameId: GameId, playerId: PlayerId, isReady: boolean }
   | { type: 'GUESS', gameId: GameId, playerId: PlayerId, guess: string }
@@ -25,3 +25,4 @@ export type ToClientMessage =
   | { type: 'CONTINUE_PROMPT', gameId: GameId, centroidHistory: string[], playerHistory: [string, string][] }
   | { type: 'SCORING', gameId: GameId }
   | { type: 'NO_SUCH_GAME', gameId: GameId }
+  | { type: 'VERSION_MISMATCH' }

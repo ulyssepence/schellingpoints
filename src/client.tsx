@@ -8,6 +8,7 @@ import { Lobby } from "./client/Lobby"
 import { Reveal } from "./client/Reveal"
 import { GameEnd } from "./client/GameEnd"
 import { ScreenBackground } from './client/ScreenBackground'
+import * as haptics from './client/haptics'
 import { PlayerRing } from "./client/PlayerRing"
 import { MoodPicker } from './client/MoodPicker'
 import '../static/styles/global.css'
@@ -107,6 +108,7 @@ function App({ gameId }: Props) {
   const [playerName, setPlayerName] = React.useState(state.playerName)
   const [nameInput, setNameInput] = React.useState('')
   const [currentMood, setCurrentMood] = React.useState(state.mood)
+  const prevPlayerCount = React.useRef(0)
 
   function handleNameSubmit() {
     const trimmed = nameInput.trim()
@@ -118,6 +120,22 @@ function App({ gameId }: Props) {
   React.useEffect(() => {
     state.mailbox.listen(dispatch)
   }, [])
+
+  React.useEffect(() => {
+    const count = state.otherPlayers.length
+    if (state.view.type === 'LOBBY' && count > prevPlayerCount.current && prevPlayerCount.current > 0) {
+      state.audioPlayer.playSound('PlayerJoined')
+    }
+    prevPlayerCount.current = count
+  }, [state.otherPlayers])
+
+  React.useEffect(() => {
+    if (state.view.type !== 'REVEAL') return
+    const pos = state.view.positions.find(([id]) => id === state.playerId)
+    if (!pos) return
+    const [, x, y] = pos
+    haptics.onReveal(Math.sqrt(x * x + y * y), state.view.melded)
+  }, [state.view.type === 'REVEAL' ? state.view.round : null])
 
   React.useEffect(() => {
     if (state.view.type === 'LOUNGE') {
@@ -137,6 +155,7 @@ function App({ gameId }: Props) {
       playerId: state.playerId,
       playerName: playerName,
       mood: currentMood,
+      clientVersion: import.meta.env.VITE_APP_VERSION,
     })
   }, [gameId, playerName])
 

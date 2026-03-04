@@ -26,6 +26,10 @@ export class Box {
   listen(callback: (message: t.ToClientMessage) => void) {
     this.webSocket.onmessage = (event) => {
       const message = JSON.parse(event.data) as t.ToClientMessage
+      if (message.type === 'VERSION_MISMATCH') {
+        window.location.href = `/?_v=${Date.now()}`
+        return
+      }
       callback(message)
     }
   }

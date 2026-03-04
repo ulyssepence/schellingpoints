@@ -1,6 +1,7 @@
 export * from '../types'
 import * as audio from './audio'
 import * as mail from './mail'
+import * as updater from './updater'
 import * as t from '../types'
 
 export type View =
@@ -23,8 +24,15 @@ export type State = {
 
 export function initialState(): State {
   const audioPlayer = new audio.Player('/static')
-  const websocketProtocol = document.location.protocol == 'http:' ? 'ws' : 'wss'
-  const mailbox = new mail.Box(new WebSocket(`${websocketProtocol}://${window.location.host}/ws`))
+  const apiHost = import.meta.env.VITE_API_HOST || window.location.host
+  const wsProto = apiHost.startsWith('localhost') ? 'ws' : 'wss'
+  const ws = new WebSocket(`${wsProto}://${apiHost}/ws`)
+  const mailbox = new mail.Box(ws)
+  const originalOnOpen = ws.onopen
+  ws.onopen = (ev) => {
+    originalOnOpen?.call(ws, ev)
+    updater.notifyReady()
+  }
 
   const playerId = localStorage.getItem('playerId') ?? crypto.randomUUID()
   const playerName = localStorage.getItem('playerName') ?? ''

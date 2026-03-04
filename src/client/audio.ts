@@ -4,6 +4,7 @@ export type Clip =
   | 'Ex'
   | 'Oh'
   | 'Winner'
+  | 'PlayerJoined'
 
 export interface PlayOptions {
   volume?: number

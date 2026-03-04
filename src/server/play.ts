@@ -167,6 +167,12 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
     }
 
     case 'SUBSCRIBE_GAME': {
+      const serverVersion = process.env.VITE_APP_VERSION
+      if (message.clientVersion && serverVersion && message.clientVersion !== serverVersion) {
+        webSocket.send(JSON.stringify({ type: 'VERSION_MISMATCH' } satisfies t.ToClientMessage))
+        return
+      }
+
       const game = state.games.get(message.gameId)
       if (!game) {
         console.warn('SUBSCRIBE_GAME: game not found', message.gameId)

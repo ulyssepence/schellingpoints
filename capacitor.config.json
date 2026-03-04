@@ -1,0 +1,12 @@
+{
+  "appId": "app.schellingpoints",
+  "appName": "Schelling Points",
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorUpdater": {
+      "updateUrl": "https://schellingpoints.app/api/updates/check",
+      "statsUrl": "",
+      "autoUpdate": true
+    }
+  }
+}
