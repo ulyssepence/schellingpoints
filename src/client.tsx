@@ -9,6 +9,7 @@ import { Reveal } from "./client/Reveal"
 import { GameEnd } from "./client/GameEnd"
 import { ScreenBackground } from './client/ScreenBackground'
 import * as haptics from './client/haptics'
+import * as push from './client/push'
 import { PlayerRing } from "./client/PlayerRing"
 import { MoodPicker } from './client/MoodPicker'
 
@@ -84,6 +85,9 @@ function onMessage(state: t.State, message: t.ToClientMessage): t.State {
       return { ...state, view: { ...state.view, scoring: true } }
     }
 
+    case 'CONNECTION_STATUS':
+      return { ...state, connected: message.connected }
+
     case 'NO_SUCH_GAME':
       // TODO: Create notification?
       return state
@@ -99,6 +103,8 @@ function App({ gameId }: Props) {
   const [nameInput, setNameInput] = React.useState('')
   const [currentMood, setCurrentMood] = React.useState(state.mood)
   const prevPlayerCount = React.useRef(0)
+  const hasConnected = React.useRef(false)
+  if (state.connected) hasConnected.current = true
 
   function handleNameSubmit() {
     const trimmed = nameInput.trim()
@@ -107,9 +113,50 @@ function App({ gameId }: Props) {
     setPlayerName(trimmed)
   }
 
+  const reconnectInfoRef = React.useRef<{
+    gameId?: string, playerId: string, playerName: string, mood: t.Mood, clientVersion?: string
+  } | null>(null)
+
   React.useEffect(() => {
     state.mailbox.listen(dispatch)
+    push.register(state.mailbox, state.playerId)
+    const pendingGameId = push.getPendingGameId()
+    if (pendingGameId) {
+      history.pushState(null, '', `/game/${pendingGameId}`)
+      dispatchEvent(new PopStateEvent('popstate'))
+    }
+    state.mailbox.onReconnect = () => {
+      const info = reconnectInfoRef.current
+      if (!info) return
+      if (info.gameId) {
+        state.mailbox.send({
+          type: 'SUBSCRIBE_GAME',
+          gameId: info.gameId,
+          playerId: info.playerId,
+          playerName: info.playerName,
+          mood: info.mood,
+          clientVersion: info.clientVersion,
+        })
+      } else {
+        state.mailbox.send({
+          type: 'JOIN_LOUNGE',
+          playerId: info.playerId,
+          playerName: info.playerName,
+          mood: info.mood,
+        })
+      }
+    }
   }, [])
+
+  React.useEffect(() => {
+    reconnectInfoRef.current = {
+      gameId: 'gameId' in state.view ? state.view.gameId : undefined,
+      playerId: state.playerId,
+      playerName: playerName,
+      mood: currentMood,
+      clientVersion: import.meta.env.APP_VERSION,
+    }
+  }, [state.view, state.playerId, playerName, currentMood])
 
   React.useEffect(() => {
     const count = state.otherPlayers.length
@@ -149,8 +196,14 @@ function App({ gameId }: Props) {
     })
   }, [gameId, playerName])
 
+  const showReconnecting = hasConnected.current && !state.connected
+  const reconnectOverlay = showReconnecting
+    ? <div className="reconnecting-overlay"><p>Reconnecting...</p></div>
+    : null
+
   if (gameId && !playerName) {
-    return (
+    return <>
+      {reconnectOverlay}
       <div className="screen lounge">
         <div className="title-block">
           <h1 className="title">The Schelling Point</h1>
@@ -170,20 +223,22 @@ function App({ gameId }: Props) {
           <button className="btn" onClick={handleNameSubmit}>Join Lobby</button>
         </div>
       </div>
-    )
+    </>
   }
 
+  let screen: React.ReactNode
   switch (state.view.type) {
     case 'LOUNGE':
-      return <Lounge
+      screen = <Lounge
         mailbox={state.mailbox}
         playerId={state.playerId}
         mood={state.mood}
         otherPlayers={state.otherPlayers}
       />
+      break
 
     case 'LOBBY':
-      return <Lobby
+      screen = <Lobby
         mailbox={state.mailbox}
         playerId={state.playerId}
         gameId={state.view.gameId}
@@ -193,9 +248,10 @@ function App({ gameId }: Props) {
         playerName={state.playerName}
         otherPlayers={state.otherPlayers}
       />
+      break
 
     case 'GUESSES':
-      return <Guesses
+      screen = <Guesses
         mailbox={state.mailbox}
         playerId={state.playerId}
         gameId={state.view.gameId}
@@ -206,9 +262,10 @@ function App({ gameId }: Props) {
         totalRounds={state.view.totalRounds}
         scoring={state.view.scoring}
       />
+      break
 
     case 'REVEAL':
-      return <Reveal
+      screen = <Reveal
         gameId={state.view.gameId}
         playerId={state.playerId}
         playerName={playerName}
@@ -225,9 +282,10 @@ function App({ gameId }: Props) {
         isReady={state.view.isReady}
         otherPlayers={state.otherPlayers}
       />
+      break
 
     case 'GAME_END':
-      return <GameEnd
+      screen = <GameEnd
         gameId={state.view.gameId}
         playerId={state.playerId}
         playerName={playerName}
@@ -238,9 +296,10 @@ function App({ gameId }: Props) {
         centroidHistory={state.view.centroidHistory}
         playerHistory={state.view.playerHistory}
       />
+      break
 
     case 'CONTINUE':
-      return <GameEnd
+      screen = <GameEnd
         gameId={state.view.gameId}
         playerId={state.playerId}
         playerName={playerName}
@@ -250,13 +309,18 @@ function App({ gameId }: Props) {
         centroidHistory={state.view.centroidHistory}
         playerHistory={state.view.playerHistory}
       />
+      break
 
-    // minimal error boundary in case extra views added later
     default: {
       const _exhaustive: never = state.view
-      return _exhaustive
+      screen = _exhaustive
     }
   }
+
+  return <>
+    {reconnectOverlay}
+    {screen}
+  </>
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

@@ -5,6 +5,8 @@ import * as names from './server/names'
 import * as play from './server/play'
 import * as t from './server/types'
 import * as categories from './server/categories'
+import * as db from './server/db'
+import * as apns from './server/apns'
 import { loadVocab } from './server/vocab'
 
 import path from 'path';
@@ -43,6 +45,8 @@ api.addStatic(
   app,
 )
 
+db.init()
+apns.init()
 play.startTicking(state, 100)
 play.startReaper(state)
 

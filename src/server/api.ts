@@ -35,7 +35,7 @@ export function addWebsockets(state: t.State, app: express.Application) {
         for (const [gameId, game] of state.games) {
           const inGame = game.players.some(p => p.id === boundId)
           if (!inGame) continue
-          play.onPlayerDisconnect(boundId, gameId, game, state)
+          play.onPlayerDisconnect(boundId, gameId, game, state, webSocket)
           break
         }
 

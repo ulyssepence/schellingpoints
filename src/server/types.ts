@@ -10,6 +10,7 @@ export interface PlayerInfo {
   mood: t.Mood,
   webSocket: WebSocket,
   previousScoresAndGuesses: [number, string][],
+  disconnectedAt?: number,
 }
 
 export interface Category {

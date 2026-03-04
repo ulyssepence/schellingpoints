@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'bun:test'
 import WebSocket from 'ws'
 import * as t from './types'
 import * as scoring from './scoring'
-import { onTickGame, onClientMessage, currentGameState, isCullable, startReaper, checkPlayAgainVotes, onPlayerDisconnect } from './play'
+import { onTickGame, onClientMessage, currentGameState, isCullable, startReaper, checkPlayAgainVotes, onPlayerDisconnect, removeDisconnectedPlayer, DISCONNECT_GRACE_MS } from './play'
 
 function mockWs(readyState = WebSocket.OPEN): WebSocket {
   return { readyState, send: vi.fn() } as unknown as WebSocket
@@ -268,12 +268,17 @@ describe('play again voting', () => {
     expect(state.games.has('g')).toBe(false)
   })
 
-  it('disconnect during PLAY_AGAIN counts as leaving', () => {
+  it('disconnect during PLAY_AGAIN sets grace period, reaper removal counts as leaving', () => {
     const game = makeGame([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
     game.phase = playAgainPhase()
     const state = makeState([['g', game]])
 
     onPlayerDisconnect('c', 'g', game, state)
+    expect(game.players).toHaveLength(3)
+    expect(game.players.find(p => p.id === 'c')!.disconnectedAt).toBeDefined()
+
+    // Simulate reaper removing the expired player
+    removeDisconnectedPlayer('c', 'g', game, state)
     expect(game.players).toHaveLength(2)
 
     onClientMessage(state, { type: 'PLAY_AGAIN_VOTE', gameId: 'g', playerId: 'a', playAgain: true }, mockWs())
@@ -306,5 +311,139 @@ describe('play again voting', () => {
       expect(game.phase.meldRound).toBe(5)
     }
     expect(state.games.has('g')).toBe(true)
+  })
+})
+
+describe('disconnect grace period', () => {
+  it('disconnect sets disconnectedAt, player stays in game.players', () => {
+    const game = makeGame([{ id: 'a' }, { id: 'b' }])
+    const state = makeState([['g', game]])
+
+    onPlayerDisconnect('a', 'g', game, state)
+
+    expect(game.players).toHaveLength(2)
+    const player = game.players.find(p => p.id === 'a')!
+    expect(player.disconnectedAt).toBeDefined()
+    expect(Date.now() - player.disconnectedAt!).toBeLessThan(1000)
+  })
+
+  it('race guard: disconnect after socket already replaced is a no-op', () => {
+    const oldWs = mockWs()
+    const newWs = mockWs()
+    const game = makeGame([{ id: 'a', ws: newWs }, { id: 'b' }])
+    const state = makeState([['g', game]])
+
+    onPlayerDisconnect('a', 'g', game, state, oldWs)
+
+    const player = game.players.find(p => p.id === 'a')!
+    expect(player.disconnectedAt).toBeUndefined()
+  })
+
+  it('reconnect during grace period clears disconnectedAt', () => {
+    const game = makeGame([{ id: 'a' }, { id: 'b' }])
+    game.players[0].disconnectedAt = Date.now()
+    const state = makeState([['g', game]])
+
+    const newWs = mockWs()
+    onClientMessage(state, {
+      type: 'SUBSCRIBE_GAME',
+      gameId: 'g',
+      playerId: 'a',
+      playerName: 'a',
+      mood: '😀',
+    }, newWs)
+
+    const player = game.players.find(p => p.id === 'a')!
+    expect(player.disconnectedAt).toBeUndefined()
+    expect(player.webSocket).toBe(newWs)
+  })
+
+  it('reaper sweeps expired disconnected players', async () => {
+    const TTL = 60_000
+    const INTERVAL = 50
+
+    const game = makeGame([{ id: 'a' }, { id: 'b' }])
+    game.players[0].disconnectedAt = Date.now() - DISCONNECT_GRACE_MS - 1000
+    const state = makeState([['g', game]])
+
+    const timer = startReaper(state, { ttlMs: TTL, intervalMs: INTERVAL })
+    try {
+      await new Promise(r => setTimeout(r, INTERVAL * 3))
+      expect(game.players).toHaveLength(1)
+      expect(game.players[0].id).toBe('b')
+    } finally {
+      clearInterval(timer)
+    }
+  })
+
+  it('reaper leaves non-expired disconnected players alone', async () => {
+    const TTL = 60_000
+    const INTERVAL = 50
+
+    const game = makeGame([{ id: 'a' }, { id: 'b' }])
+    game.players[0].disconnectedAt = Date.now() - 1000
+    const state = makeState([['g', game]])
+
+    const timer = startReaper(state, { ttlMs: TTL, intervalMs: INTERVAL })
+    try {
+      await new Promise(r => setTimeout(r, INTERVAL * 3))
+      expect(game.players).toHaveLength(2)
+    } finally {
+      clearInterval(timer)
+    }
+  })
+
+  it('reaper + GUESSES: expired disconnect triggers all-guessed check', async () => {
+    const closedWs = mockWs(WebSocket.CLOSED)
+    const game = makeGame([{ id: 'a' }, { id: 'b', ws: closedWs }])
+    game.currentPrompt = 'animals'
+    game.phase = guessPhase([['a', 'cat']])
+    game.players[1].disconnectedAt = Date.now() - DISCONNECT_GRACE_MS - 1000
+    const state = makeState([['g', game]])
+
+    removeDisconnectedPlayer('b', 'g', game, state)
+
+    await new Promise(r => setTimeout(r, 10))
+
+    expect(game.phase.type).toBe('REVEAL')
+    expect(game.players).toHaveLength(1)
+  })
+
+  it('reaper + CONTINUE: expired disconnect adds to isLeaving', () => {
+    const closedWs = mockWs(WebSocket.CLOSED)
+    const game = makeGame([{ id: 'a' }, { id: 'b' }, { id: 'c', ws: closedWs }])
+    game.phase = {
+      type: 'CONTINUE',
+      isLeaving: new Set(),
+      isContinuing: new Set(),
+    }
+    game.players[2].disconnectedAt = Date.now() - DISCONNECT_GRACE_MS - 1000
+    const state = makeState([['g', game]])
+
+    removeDisconnectedPlayer('c', 'g', game, state)
+
+    expect(game.players).toHaveLength(2)
+    if (game.phase.type === 'CONTINUE') {
+      expect(game.phase.isLeaving.has('c')).toBe(true)
+    }
+  })
+
+  it('reaper + already deleted game does not crash', async () => {
+    const TTL = 60_000
+    const INTERVAL = 50
+
+    const game = makeGame([{ id: 'a' }])
+    game.players[0].disconnectedAt = Date.now() - DISCONNECT_GRACE_MS - 1000
+    const state = makeState([['g', game]])
+
+    state.games.delete('g')
+
+    const timer = startReaper(state, { ttlMs: TTL, intervalMs: INTERVAL })
+    try {
+      await new Promise(r => setTimeout(r, INTERVAL * 3))
+      expect(state.games.size).toBe(0)
+    } finally {
+      clearInterval(timer)
+    }
   })
 })

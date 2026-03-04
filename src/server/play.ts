@@ -3,6 +3,8 @@ import * as config from '../config'
 import * as t from './types'
 import * as util from './util'
 import * as scoring from './scoring'
+import * as pushTokens from './push-tokens'
+import * as apns from './apns'
 import { filterPromptRepetitions, detectMeld } from './meld'
 
 function pickRandomPrompt(categories: t.Category[]): string {
@@ -188,6 +190,9 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
       const alreadyPlayer = game.players.find(playerInfo => playerInfo.id === message.playerId)
       if (alreadyPlayer) {
         alreadyPlayer.webSocket = webSocket
+        if (alreadyPlayer.disconnectedAt) {
+          alreadyPlayer.disconnectedAt = undefined
+        }
       } else {
         game.players.push({
           id: message.playerId,
@@ -200,6 +205,16 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
 
       game.unicast(message.playerId, currentGameState(message.gameId, game))
       game.broadcast(game.memberChangeMessage(message.gameId))
+
+      if (!alreadyPlayer) {
+        for (const player of game.players) {
+          if (player.id === message.playerId) continue
+          if (player.webSocket.readyState === WebSocket.OPEN) continue
+          for (const token of pushTokens.getTokensForPlayer(player.id)) {
+            apns.sendLobbyJoinNotification(token, message.gameId, message.playerName)
+          }
+        }
+      }
 
       // In case they were in the lounge
       state.lounge.delete(message.playerId)
@@ -350,6 +365,11 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
       }
 
       checkPlayAgainVotes(message.gameId, game, state)
+      break
+    }
+
+    case 'REGISTER_PUSH_TOKEN': {
+      pushTokens.register(message.playerId, message.deviceToken)
       break
     }
   }
@@ -629,12 +649,62 @@ function goToNextRound(gameId: t.GameId, game: t.Game, state: t.State) {
   game.broadcast(currentGameState(gameId, game))
 }
 
-/**
- * Handle a player disconnecting from a game.
- * Removes them from the player list and broadcasts updates so remaining
- * players see the departure. Cleans up empty games.
- */
 export function onPlayerDisconnect(
+  playerId: t.PlayerId,
+  gameId: t.GameId,
+  game: t.Game,
+  state: t.State,
+  closedSocket?: WebSocket,
+) {
+  const player = game.players.find(p => p.id === playerId)
+  if (!player) return
+
+  if (closedSocket && player.webSocket !== closedSocket) return
+
+  player.disconnectedAt = Date.now()
+  game.broadcast(game.memberChangeMessage(gameId))
+
+  // Run phase-specific advancement checks — existing readyState checks
+  // naturally exclude the dead socket
+  switch (game.phase.type) {
+    case 'LOBBY': {
+      const livePlayerIds = livePlayerIdsIn(game)
+      const allReady = livePlayerIds.length >= 2
+        && livePlayerIds.every(id => game.phase.type === 'LOBBY' && game.phase.isReady.has(id))
+      if (!allReady && game.phase.secsLeft !== undefined) {
+        game.phase.secsLeft = undefined
+        game.broadcast(currentGameState(gameId, game))
+      }
+      break
+    }
+    case 'GUESSES': {
+      const livePlayerIds = livePlayerIdsIn(game)
+      const allGuessed = livePlayerIds.length > 0
+        && livePlayerIds.every(id => game.phase.type === 'GUESSES' && game.phase.guesses.has(id))
+      if (allGuessed) {
+        scoreRound(gameId, game, state)
+      }
+      break
+    }
+    case 'REVEAL': {
+      const livePlayerIds = livePlayerIdsIn(game)
+      const allReady = livePlayerIds.length > 0
+        && livePlayerIds.every(id => game.phase.type === 'REVEAL' && game.phase.isReady.has(id))
+      if (allReady) {
+        goToNextRound(gameId, game, state)
+      }
+      break
+    }
+  }
+}
+
+function livePlayerIdsIn(game: t.Game): t.PlayerId[] {
+  return game.players
+    .filter(p => p.webSocket.readyState === WebSocket.OPEN)
+    .map(p => p.id)
+}
+
+export function removeDisconnectedPlayer(
   playerId: t.PlayerId,
   gameId: t.GameId,
   game: t.Game,
@@ -645,38 +715,24 @@ export function onPlayerDisconnect(
 
   game.players.splice(playerIdx, 1)
 
-  if (game.players.length === 0) {
-    return
-  }
+  if (game.players.length === 0) return
 
   switch (game.phase.type) {
     case 'LOBBY': {
-      // Clean up ready state for departed player
       game.phase.isReady.delete(playerId)
-
-      // Cancel countdown if conditions no longer hold (need 2+ ready players)
-      const livePlayerIds = game.players
-        .filter(p => p.webSocket.readyState === WebSocket.OPEN)
-        .map(p => p.id)
+      const livePlayerIds = livePlayerIdsIn(game)
       const allReady = livePlayerIds.length >= 2
         && livePlayerIds.every(id => game.phase.type === 'LOBBY' && game.phase.isReady.has(id))
-
       if (!allReady && game.phase.secsLeft !== undefined) {
         game.phase.secsLeft = undefined
       }
-
-      // Broadcast updated member list + game state to remaining players
       game.broadcast(game.memberChangeMessage(gameId))
       game.broadcast(currentGameState(gameId, game))
       break
     }
-
     case 'GUESSES': {
       game.broadcast(game.memberChangeMessage(gameId))
-      // Check if all remaining live players have guessed (departure may complete the round)
-      const livePlayerIds = game.players
-        .filter(p => p.webSocket.readyState === WebSocket.OPEN)
-        .map(p => p.id)
+      const livePlayerIds = livePlayerIdsIn(game)
       const allGuessed = livePlayerIds.length > 0
         && livePlayerIds.every(id => game.phase.type === 'GUESSES' && game.phase.guesses.has(id))
       if (allGuessed) {
@@ -686,20 +742,17 @@ export function onPlayerDisconnect(
       }
       break
     }
-
     case 'REVEAL': {
       game.broadcast(game.memberChangeMessage(gameId))
       game.broadcast(currentGameState(gameId, game))
       break
     }
-
     case 'CONTINUE': {
       game.phase.isLeaving.add(playerId)
       game.broadcast(game.memberChangeMessage(gameId))
       checkContinueVotes(gameId, game, state)
       break
     }
-
     case 'PLAY_AGAIN': {
       game.phase.isLeaving.add(playerId)
       game.broadcast(game.memberChangeMessage(gameId))
@@ -708,6 +761,8 @@ export function onPlayerDisconnect(
     }
   }
 }
+
+export const DISCONNECT_GRACE_MS = 30_000
 
 export const DEFAULT_CULL_INTERVAL_MS = 60_000
 export const DEFAULT_GAME_TTL_MS = 24 * 60 * 60 * 1000
@@ -732,6 +787,14 @@ export function startReaper(state: t.State, opts: ReaperOptions = {}) {
         for (const p of game.players) p.webSocket.terminate()
         state.games.delete(gameId)
         console.log('culled stale game', gameId)
+        continue
+      }
+
+      const expired = game.players.filter(
+        p => p.disconnectedAt && now - p.disconnectedAt > DISCONNECT_GRACE_MS
+      )
+      for (const p of expired) {
+        removeDisconnectedPlayer(p.id, gameId, game, state)
       }
     }
   }, intervalMs)

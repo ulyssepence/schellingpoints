@@ -19,19 +19,15 @@ export type State = {
   otherPlayers: [t.PlayerId, t.PlayerName, t.Mood][],
   playerId: string,
   playerName: string,
-  mood: t.Mood
+  mood: t.Mood,
+  connected: boolean,
 }
 
 export function initialState(): State {
   const audioPlayer = new audio.Player('/static')
   const apiHost = import.meta.env.API_HOST || window.location.host
   const wsProto = apiHost.startsWith('localhost') ? 'ws' : 'wss'
-  const ws = new WebSocket(`${wsProto}://${apiHost}/ws`)
-  const mailbox = new mail.Box(ws)
-  const originalOnOpen = ws.onopen
-  ws.onopen = (ev) => {
-    originalOnOpen?.call(ws, ev)
-  }
+  const mailbox = new mail.Box(`${wsProto}://${apiHost}/ws`)
   updater.notifyReady()
 
   const playerId = localStorage.getItem('playerId') ?? crypto.randomUUID()
@@ -45,6 +41,7 @@ export function initialState(): State {
     otherPlayers: [],
     playerId,
     playerName,
-    mood: (localStorage.getItem('mood') as t.Mood) ?? '😀'
+    mood: (localStorage.getItem('mood') as t.Mood) ?? '😀',
+    connected: false,
   }
 }

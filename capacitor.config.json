@@ -7,6 +7,9 @@
       "updateUrl": "https://schellingpoints.app/api/updates/check",
       "statsUrl": "",
       "autoUpdate": true
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
     }
   }
 }
