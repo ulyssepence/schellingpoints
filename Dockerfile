@@ -4,8 +4,9 @@ WORKDIR /app
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --ignore-scripts
 COPY . .
+RUN cd node_modules/better-sqlite3 && npx --yes prebuild-install || npm run build-release
 RUN bun scripts/build.ts
 RUN bunx @capgo/cli bundle zip --path dist --name bundle && mv bundle dist/bundle.zip
 
