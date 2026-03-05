@@ -146,11 +146,13 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
     }
 
     case 'NEW_GAME': {
+      console.log('NEW_GAME:', message.playerId, 'ws.readyState:', webSocket.readyState)
       const loungeInfo = state.lounge.get(message.playerId)
       if (!loungeInfo) {
         console.warn('NEW_GAME: player not in lounge', message.playerId)
         break
       }
+      console.log('NEW_GAME: loungeInfo.ws.readyState:', loungeInfo.webSocket.readyState, 'same ws?', loungeInfo.webSocket === webSocket)
 
       const gameId = state.nameChooser.choose(id => state.games.has(id))
       const newGame = new t.Game
@@ -161,7 +163,9 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
         webSocket,
         previousScoresAndGuesses: [],
       })
-      newGame.broadcast(currentGameState(gameId, newGame))
+      const msg = currentGameState(gameId, newGame)
+      console.log('NEW_GAME: broadcasting', msg.type, 'to player, ws.readyState:', webSocket.readyState)
+      newGame.broadcast(msg)
 
       state.games.set(gameId, newGame)
       state.broadcastLoungeChange()
