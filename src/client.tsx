@@ -16,6 +16,7 @@ import * as push from './client/push'
 import * as network from './client/network'
 import { PlayerRing } from "./client/PlayerRing"
 import { MoodPicker } from './client/MoodPicker'
+import { onMessage } from './client/reducer'
 
 const router = Router.createBrowserRouter([
   {
@@ -30,76 +31,6 @@ const router = Router.createBrowserRouter([
     },
   },
 ])
-
-function onMessage(state: t.State, message: t.ToClientMessage): t.State {
-  switch (message.type) {
-    case 'LOUNGE':
-      return { ...state, view: { type: 'LOUNGE' } }
-
-    case 'MEMBER_CHANGE': {
-      const viewGameId = 'gameId' in state.view ? state.view.gameId : undefined
-      if (message.gameId !== viewGameId) return state
-      return { ...state, otherPlayers: message.allPlayers }
-    }
-
-    case 'LOBBY_STATE':
-      console.log(message)
-      return { ...state, view: { type: 'LOBBY', gameId: message.gameId, isReady: message.isReady } }
-
-    case 'GUESS_STATE':
-      return { ...state, view: { type: 'GUESSES', gameId: message.gameId, hasGuessed: message.hasGuessed, prompt: message.prompt, secsLeft: message.secsLeft, round: message.round, totalRounds: message.totalRounds } }
-
-    case 'REVEAL_STATE':
-      return { ...state, view: {
-        type: 'REVEAL', gameId: message.gameId,
-        centroidWord: message.centroidWord,
-        centroidIsRepeat: message.centroidIsRepeat,
-        positions: message.positions,
-        guesses: message.guesses,
-        melded: message.melded,
-        round: message.round,
-        totalRounds: message.totalRounds,
-        secsLeft: message.secsLeft,
-        isReady: message.isReady,
-      }}
-
-    case 'GAME_END':
-      return { ...state, view: {
-        type: 'GAME_END', gameId: message.gameId,
-        melded: message.melded,
-        meldRound: message.meldRound,
-        centroidHistory: message.centroidHistory,
-        playerHistory: message.playerHistory,
-      }}
-
-    case 'CONTINUE_PROMPT':
-      return { ...state, view: {
-        type: 'CONTINUE', gameId: message.gameId,
-        centroidHistory: message.centroidHistory,
-        playerHistory: message.playerHistory,
-      }}
-
-    case 'LOBBY_COUNTDOWN': {
-      const isReady = state.view.type === 'LOBBY' ? state.view.isReady : []
-      return { ...state, view: { type: 'LOBBY', gameId: message.gameId, isReady, secsLeft: message.secsLeft } }
-    }
-
-    case 'SCORING': {
-      if (state.view.type !== 'GUESSES' || state.view.gameId !== message.gameId) return state
-      return { ...state, view: { ...state.view, scoring: true } }
-    }
-
-    case 'CONNECTION_STATUS':
-      return { ...state, connected: message.connected }
-
-    case 'NETWORK_STATUS':
-      return { ...state, networkOnline: message.online }
-
-    case 'NO_SUCH_GAME':
-      // TODO: Create notification?
-      return state
-  }
-}
 
 export interface Props {
   gameId?: t.GameId
@@ -257,6 +188,16 @@ function App({ gameId }: Props) {
           />
           <button className="btn" onClick={handleNameSubmit}>Join Lobby</button>
         </div>
+      </div>
+    </>
+  }
+
+  if (gameId && playerName && state.view.type === 'LOUNGE' && !state.gameNotFound) {
+    return <>
+      {offlineBanner}
+      {reconnectOverlay}
+      <div className="screen lounge">
+        <p>Joining...</p>
       </div>
     </>
   }

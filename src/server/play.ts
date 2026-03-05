@@ -168,7 +168,9 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
       newGame.broadcast(msg)
 
       state.games.set(gameId, newGame)
+      state.lounge.delete(message.playerId)
       state.broadcastLoungeChange()
+      newGame.broadcast(newGame.memberChangeMessage(gameId))
       break
     }
 
@@ -182,6 +184,7 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
       const game = state.games.get(message.gameId)
       if (!game) {
         console.warn('SUBSCRIBE_GAME: game not found', message.gameId)
+        webSocket.send(JSON.stringify({ type: 'NO_SUCH_GAME', gameId: message.gameId } satisfies t.ToClientMessage))
         state.lounge.set(message.playerId, {
           name: message.playerName,
           mood: message.mood,
@@ -222,6 +225,37 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
 
       // In case they were in the lounge
       state.lounge.delete(message.playerId)
+      state.broadcastLoungeChange()
+      break
+    }
+
+    case 'LEAVE_GAME': {
+      const game = state.games.get(message.gameId)
+      if (!game) break
+
+      const player = game.players.find(p => p.id === message.playerId)
+      if (!player) break
+
+      removeDisconnectedPlayer(message.playerId, message.gameId, game, state)
+
+      if (game.players.length === 0) {
+        state.games.delete(message.gameId)
+      } else if (game.players.length === 1 && game.phase.type !== 'LOBBY') {
+        endGame(message.gameId, game, state, false)
+      }
+
+      state.lounge.set(message.playerId, {
+        name: player.name,
+        mood: player.mood,
+        webSocket,
+      })
+      const loungeMsg: t.ToClientMessage = {
+        type: 'LOUNGE',
+        loungingPlayers: [...state.lounge.entries()].map(
+          ([id, info]) => [id, info.name, info.mood]
+        ),
+      }
+      webSocket.send(JSON.stringify(loungeMsg))
       state.broadcastLoungeChange()
       break
     }

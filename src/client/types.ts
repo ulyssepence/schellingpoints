@@ -22,6 +22,7 @@ export type State = {
   mood: t.Mood,
   connected: boolean,
   networkOnline: boolean,
+  gameNotFound?: boolean,
 }
 
 export function initialState(): State {

@@ -19,6 +19,13 @@ type Props = {
   otherPlayers: [t.PlayerId, t.PlayerName, t.Mood][]
 }
 
+function gameUrl(id: string): string {
+  const origin = import.meta.env.API_HOST
+    ? `https://${import.meta.env.API_HOST}`
+    : window.location.origin
+  return `${origin}/game/${id}`
+}
+
 export function Lobby({ mailbox, playerId, gameId, isReady, secsLeft, mood, playerName, otherPlayers }: Props) {
   const [currentMood, setCurrentMood] = React.useState(
     (localStorage.getItem('mood') as t.Mood) ?? mood
@@ -36,7 +43,7 @@ export function Lobby({ mailbox, playerId, gameId, isReady, secsLeft, mood, play
   }
 
   function qrCodeButton(id: string): JSX.Element {
-    const gameUrl = `${window.location.origin}/game/${id}`
+    const url = gameUrl(id)
     return (<>
       <button className="btn-icon" popoverTarget="qr-popover">
         <svg className="icon" viewBox="0 0 24 24"
@@ -52,7 +59,7 @@ export function Lobby({ mailbox, playerId, gameId, isReady, secsLeft, mood, play
       </button>
       <div id="qr-popover" popover="auto">
         <QRCode
-          value={gameUrl}
+          value={url}
           size={180}
           qrStyle="dots"
           bgColor="transparent"
@@ -67,9 +74,9 @@ export function Lobby({ mailbox, playerId, gameId, isReady, secsLeft, mood, play
   }
 
   function copyUrlButton(id: string): JSX.Element {
-    const gameUrl = `${window.location.origin}/game/${id}`
+    const url = gameUrl(id)
     return (<>
-      <button className="btn-icon" popoverTarget="copy-popover" onClick={() => navigator.clipboard.writeText(gameUrl)}>
+      <button className="btn-icon" popoverTarget="copy-popover" onClick={() => navigator.clipboard.writeText(url)}>
         <svg className="icon" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2" strokeLinecap="round"
           strokeLinejoin="round">
@@ -87,7 +94,11 @@ export function Lobby({ mailbox, playerId, gameId, isReady, secsLeft, mood, play
   return (
     <div className="screen lobby">
       <div className="screen-topbar">
-        <div> </div>
+        <button className="btn-icon" onClick={() => mailbox.send({ type: 'LEAVE_GAME', gameId, playerId })}>
+          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
         <InstructionsPopover autoShow={!localStorage.getItem('schelling-instructions-seen')} />
       </div>
       <div className="screen-header">

@@ -13,6 +13,7 @@ export type ToServerMessage =
   | { type: 'GUESS', gameId: GameId, playerId: PlayerId, guess: string }
   | { type: 'CONTINUE_VOTE', gameId: GameId, playerId: PlayerId, continuePlay: boolean }
   | { type: 'PLAY_AGAIN_VOTE', gameId: GameId, playerId: PlayerId, playAgain: boolean }
+  | { type: 'LEAVE_GAME', gameId: GameId, playerId: PlayerId }
   | { type: 'REGISTER_PUSH_TOKEN', playerId: PlayerId, deviceToken: string }
 
 export type ToClientMessage =

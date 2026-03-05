@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'bun:test'
 import WebSocket from 'ws'
 import * as t from './types'
 import * as scoring from './scoring'
-import { onTickGame, onClientMessage, currentGameState, isCullable, startReaper, checkPlayAgainVotes, onPlayerDisconnect, removeDisconnectedPlayer, DISCONNECT_GRACE_MS } from './play'
+import { onTickGame, onClientMessage, currentGameState, isCullable, startReaper, checkPlayAgainVotes, onPlayerDisconnect, removeDisconnectedPlayer, DISCONNECT_GRACE_MS, endGame } from './play'
 
 function mockWs(readyState = WebSocket.OPEN): WebSocket {
   return { readyState, send: vi.fn() } as unknown as WebSocket
@@ -445,5 +445,100 @@ describe('disconnect grace period', () => {
     } finally {
       clearInterval(timer)
     }
+  })
+})
+
+describe('NEW_GAME (bug 4)', () => {
+  it('removes player from lounge and broadcasts member change', () => {
+    const ws = mockWs()
+    const state = makeState()
+    state.lounge.set('a', { name: 'Alice', mood: '😀', webSocket: ws })
+
+    onClientMessage(state, { type: 'NEW_GAME', playerId: 'a' }, ws)
+
+    expect(state.lounge.has('a')).toBe(false)
+    expect(state.games.size).toBe(1)
+
+    const [, game] = [...state.games.entries()][0]
+    expect(game.players).toHaveLength(1)
+    expect(game.players[0].id).toBe('a')
+
+    const sends = (ws.send as any).mock.calls.map((c: any) => JSON.parse(c[0]))
+    const memberChange = sends.find((m: any) => m.type === 'MEMBER_CHANGE')
+    expect(memberChange).toBeDefined()
+    expect(memberChange.allPlayers).toHaveLength(1)
+  })
+})
+
+describe('LEAVE_GAME (bug 2)', () => {
+  it('returns player to lounge from LOBBY', () => {
+    const wsA = mockWs()
+    const wsB = mockWs()
+    const game = makeGame([{ id: 'a', ws: wsA }, { id: 'b', ws: wsB }])
+    const state = makeState([['g', game]])
+
+    onClientMessage(state, { type: 'LEAVE_GAME', gameId: 'g', playerId: 'a' }, wsA)
+
+    expect(state.lounge.has('a')).toBe(true)
+    expect(game.players).toHaveLength(1)
+    expect(game.players[0].id).toBe('b')
+
+    const sends = (wsA.send as any).mock.calls.map((c: any) => JSON.parse(c[0]))
+    const lounge = sends.find((m: any) => m.type === 'LOUNGE')
+    expect(lounge).toBeDefined()
+  })
+
+  it('deletes game when last player leaves', () => {
+    const ws = mockWs()
+    const game = makeGame([{ id: 'a', ws }])
+    const state = makeState([['g', game]])
+
+    onClientMessage(state, { type: 'LEAVE_GAME', gameId: 'g', playerId: 'a' }, ws)
+
+    expect(state.games.has('g')).toBe(false)
+    expect(state.lounge.has('a')).toBe(true)
+  })
+
+  it('ends game when 1 player remains in non-LOBBY phase', () => {
+    const wsA = mockWs()
+    const wsB = mockWs()
+    const game = makeGame([{ id: 'a', ws: wsA }, { id: 'b', ws: wsB }])
+    game.currentPrompt = 'animals'
+    game.phase = guessPhase([['a', 'cat'], ['b', 'dog']])
+    const state = makeState([['g', game]])
+
+    onClientMessage(state, { type: 'LEAVE_GAME', gameId: 'g', playerId: 'a' }, wsA)
+
+    expect(state.games.has('g')).toBe(false)
+    expect(state.lounge.has('a')).toBe(true)
+    expect(state.lounge.has('b')).toBe(true)
+  })
+
+  it('no-op for nonexistent game', () => {
+    const ws = mockWs()
+    const state = makeState()
+    onClientMessage(state, { type: 'LEAVE_GAME', gameId: 'nope', playerId: 'a' }, ws)
+    expect(state.games.size).toBe(0)
+  })
+})
+
+describe('SUBSCRIBE_GAME sends NO_SUCH_GAME (bug 1)', () => {
+  it('sends NO_SUCH_GAME when game does not exist', () => {
+    const ws = mockWs()
+    const state = makeState()
+
+    onClientMessage(state, {
+      type: 'SUBSCRIBE_GAME',
+      gameId: 'nonexistent',
+      playerId: 'a',
+      playerName: 'Alice',
+      mood: '😀',
+    }, ws)
+
+    const sends = (ws.send as any).mock.calls.map((c: any) => JSON.parse(c[0]))
+    const noSuch = sends.find((m: any) => m.type === 'NO_SUCH_GAME')
+    expect(noSuch).toBeDefined()
+    expect(noSuch.gameId).toBe('nonexistent')
+    expect(state.lounge.has('a')).toBe(true)
   })
 })
