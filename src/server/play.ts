@@ -488,15 +488,10 @@ export function checkContinueVotes(
   const allVoted = liveIds.every(id => game.phase.type === 'CONTINUE' && game.phase.isContinuing.has(id))
 
   if (allVoted && liveIds.length > 0) {
-    if (game.phase.isContinuing.size >= 2) {
-      // Continue — start round 21+ with last centroid as prompt
-      const nextRound = game.centroidHistory.length
-      game.phase = newGuessPhase(nextRound, game.currentPrompt)
-      game.lastStateChangeAt = Date.now()
-      game.broadcast(currentGameState(gameId, game))
-    } else {
-      transitionToPlayAgain(gameId, game, false, null)
-    }
+    const nextRound = game.centroidHistory.length
+    game.phase = newGuessPhase(nextRound, game.currentPrompt)
+    game.lastStateChangeAt = Date.now()
+    game.broadcast(currentGameState(gameId, game))
   }
 }
 
@@ -541,22 +536,18 @@ export function checkPlayAgainVotes(
   )
 
   if (allVoted && liveIds.length > 0) {
-    if (game.phase.isPlayingAgain.size >= 2) {
-      game.previousScores = []
-      game.centroidHistory = []
-      game.scoringRetries = 0
-      for (const player of game.players) {
-        player.previousScoresAndGuesses = []
-      }
-      const prompt = pickRandomPrompt(state.categories)
-      game.currentPrompt = prompt
-      game.phase = { type: 'LOBBY', isReady: new Set() }
-      game.lastStateChangeAt = Date.now()
-      game.broadcast(currentGameState(gameId, game))
-      game.broadcast(game.memberChangeMessage(gameId))
-    } else {
-      endGame(gameId, game, state, false)
+    game.previousScores = []
+    game.centroidHistory = []
+    game.scoringRetries = 0
+    for (const player of game.players) {
+      player.previousScoresAndGuesses = []
     }
+    const prompt = pickRandomPrompt(state.categories)
+    game.currentPrompt = prompt
+    game.phase = { type: 'LOBBY', isReady: new Set() }
+    game.lastStateChangeAt = Date.now()
+    game.broadcast(currentGameState(gameId, game))
+    game.broadcast(game.memberChangeMessage(gameId))
   }
 }
 

@@ -234,8 +234,10 @@ function playAgainPhase(melded = true, meldRound: number | null = 3): t.Phase {
 }
 
 describe('play again voting', () => {
-  it('all vote yes → resets game to LOBBY', () => {
-    const game = makeGame([{ id: 'a' }, { id: 'b' }])
+  it('all vote yes → resets game to LOBBY and broadcasts LOBBY_STATE', () => {
+    const wsA = mockWs()
+    const wsB = mockWs()
+    const game = makeGame([{ id: 'a', ws: wsA }, { id: 'b', ws: wsB }])
     game.phase = playAgainPhase()
     game.previousScores = [{ prompt: 'x', guessesAndScores: [] }]
     game.centroidHistory = ['cat', 'dog']
@@ -251,13 +253,20 @@ describe('play again voting', () => {
     expect(game.centroidHistory).toEqual([])
     expect(game.players[0].previousScoresAndGuesses).toEqual([])
     expect(state.games.has('g')).toBe(true)
+
+    const sendsA = (wsA.send as any).mock.calls.map((c: any) => JSON.parse(c[0]))
+    const sendsB = (wsB.send as any).mock.calls.map((c: any) => JSON.parse(c[0]))
+    expect(sendsA.some((m: any) => m.type === 'LOBBY_STATE')).toBe(true)
+    expect(sendsB.some((m: any) => m.type === 'LOBBY_STATE')).toBe(true)
   })
 
-  it('vote leave → player moved to lounge, remaining player causes game deletion', () => {
+  it('vote leave + remaining player votes play again → transitions to LOBBY', () => {
     const wsA = mockWs()
     const wsB = mockWs()
     const game = makeGame([{ id: 'a', ws: wsA }, { id: 'b', ws: wsB }])
     game.phase = playAgainPhase()
+    game.previousScores = [{ prompt: 'x', guessesAndScores: [] }]
+    game.centroidHistory = ['cat']
     const state = makeState([['g', game]])
 
     onClientMessage(state, { type: 'PLAY_AGAIN_VOTE', gameId: 'g', playerId: 'a', playAgain: false }, mockWs())
@@ -265,7 +274,10 @@ describe('play again voting', () => {
     expect(game.players).toHaveLength(1)
 
     onClientMessage(state, { type: 'PLAY_AGAIN_VOTE', gameId: 'g', playerId: 'b', playAgain: true }, mockWs())
-    expect(state.games.has('g')).toBe(false)
+    expect(game.phase.type).toBe('LOBBY')
+    expect(state.games.has('g')).toBe(true)
+    expect(game.previousScores).toEqual([])
+    expect(game.centroidHistory).toEqual([])
   })
 
   it('disconnect during PLAY_AGAIN sets grace period, reaper removal counts as leaving', () => {
@@ -519,6 +531,32 @@ describe('LEAVE_GAME (bug 2)', () => {
     const state = makeState()
     onClientMessage(state, { type: 'LEAVE_GAME', gameId: 'nope', playerId: 'a' }, ws)
     expect(state.games.size).toBe(0)
+  })
+})
+
+describe('client reducer: LOBBY_STATE preserves otherPlayers', () => {
+  it('spread preserves otherPlayers from previous state', async () => {
+    const { onMessage } = await import('../client/reducer')
+    const state = {
+      audioPlayer: {} as any,
+      mailbox: {} as any,
+      view: { type: 'LOUNGE' as const },
+      otherPlayers: [['a', 'Alice', '😀']] as [string, string, string][],
+      playerId: 'b',
+      playerName: 'Bob',
+      mood: '😀' as const,
+      connected: true,
+      networkOnline: true,
+    }
+
+    const next = onMessage(state, {
+      type: 'LOBBY_STATE',
+      gameId: 'g',
+      isReady: [],
+    })
+
+    expect(next.otherPlayers).toEqual([['a', 'Alice', '😀']])
+    expect(next.view.type).toBe('LOBBY')
   })
 })
 
