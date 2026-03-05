@@ -10,6 +10,7 @@ export class Box {
   private backoff = BACKOFF_BASE_MS
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private destroyed = false
+  private hasConnected = false
 
   onReconnect?: () => void
 
@@ -32,7 +33,8 @@ export class Box {
       }
       this.outbox = []
 
-      if (this.onReconnect) this.onReconnect()
+      if (this.hasConnected && this.onReconnect) this.onReconnect()
+      this.hasConnected = true
     }
 
     ws.onmessage = (event) => {
