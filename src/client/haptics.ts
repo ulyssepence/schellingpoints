@@ -1,6 +1,11 @@
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics'
 import { Capacitor } from '@capacitor/core'
 
+export function onLockIn() {
+  if (!Capacitor.isNativePlatform()) return
+  Haptics.impact({ style: ImpactStyle.Medium })
+}
+
 export function onReveal(distance: number, melded: boolean) {
   if (!Capacitor.isNativePlatform()) return
   if (melded) {

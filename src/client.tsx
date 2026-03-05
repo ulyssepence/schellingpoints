@@ -8,6 +8,9 @@ import { Lobby } from "./client/Lobby"
 import { Reveal } from "./client/Reveal"
 import { GameEnd } from "./client/GameEnd"
 import { ScreenBackground } from './client/ScreenBackground'
+import { DebugMenu } from './client/DebugMenu'
+import * as features from './client/features'
+import * as gameEvents from './client/gameEvents'
 import * as haptics from './client/haptics'
 import * as push from './client/push'
 import { PlayerRing } from "./client/PlayerRing"
@@ -103,6 +106,7 @@ function App({ gameId }: Props) {
   const [nameInput, setNameInput] = React.useState('')
   const [currentMood, setCurrentMood] = React.useState(state.mood)
   const prevPlayerCount = React.useRef(0)
+  const prevViewType = React.useRef(state.view.type)
   const hasConnected = React.useRef(false)
   if (state.connected) hasConnected.current = true
 
@@ -165,6 +169,24 @@ function App({ gameId }: Props) {
     }
     prevPlayerCount.current = count
   }, [state.otherPlayers])
+
+  React.useEffect(() => {
+    const prev = prevViewType.current
+    prevViewType.current = state.view.type
+
+    if (state.view.type === 'GUESSES' && prev !== 'GUESSES') {
+      gameEvents.emit('round-start')
+      if (features.flag('soundExpansion')) state.audioPlayer.playSound('RoundStart', { volume: 0.4 })
+    }
+    if (state.view.type === 'REVEAL' && prev !== 'REVEAL') {
+      gameEvents.emit('reveal')
+      if (features.flag('soundExpansion')) state.audioPlayer.playSound('RevealStinger', { volume: 0.5 })
+      if (state.view.melded) gameEvents.emit('meld')
+    }
+    if (prev !== state.view.type && features.flag('soundExpansion')) {
+      state.audioPlayer.playSound('TransitionSwoosh', { volume: 0.2 })
+    }
+  }, [state.view.type])
 
   React.useEffect(() => {
     if (state.view.type !== 'REVEAL') return
@@ -261,6 +283,7 @@ function App({ gameId }: Props) {
         round={state.view.round}
         totalRounds={state.view.totalRounds}
         scoring={state.view.scoring}
+        audioPlayer={state.audioPlayer}
       />
       break
 
@@ -281,6 +304,7 @@ function App({ gameId }: Props) {
         secsLeft={state.view.secsLeft}
         isReady={state.view.isReady}
         otherPlayers={state.otherPlayers}
+        audioPlayer={state.audioPlayer}
       />
       break
 
@@ -317,15 +341,38 @@ function App({ gameId }: Props) {
     }
   }
 
+  const rawKey = state.view.type + ('round' in state.view ? `-${state.view.round}` : '')
+  const [screenKey, setScreenKey] = React.useState(rawKey)
+  const keyTimer = React.useRef<ReturnType<typeof setTimeout>>()
+  const lastKeyTime = React.useRef(0)
+  React.useEffect(() => {
+    clearTimeout(keyTimer.current)
+    const now = Date.now()
+    const elapsed = now - lastKeyTime.current
+    if (elapsed < 150) {
+      keyTimer.current = setTimeout(() => {
+        setScreenKey(rawKey)
+        lastKeyTime.current = Date.now()
+      }, 100)
+    } else {
+      setScreenKey(rawKey)
+      lastKeyTime.current = now
+    }
+    return () => clearTimeout(keyTimer.current)
+  }, [rawKey])
+
   return <>
     {reconnectOverlay}
-    {screen}
+    <React.Fragment key={screenKey}>{screen}</React.Fragment>
   </>
 }
+
+features.applyBodyClasses()
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ScreenBackground />
+    <DebugMenu />
     <Router.RouterProvider router={router} />
   </React.StrictMode>
 )

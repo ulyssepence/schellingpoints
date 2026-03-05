@@ -2,11 +2,28 @@
   font-size: 3rem;
 }
 
+@keyframes centroid-enter {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.juice-centroid-entrance .reveal .screen-header h1 {
+  animation: centroid-enter 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
 .reveal .meld-indicator {
   color: var(--teal);
   font-size: 0.85rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
+}
+
+@keyframes meld-glow {
+  0%, 100% { text-shadow: 0 0 8px var(--teal); }
+  50%      { text-shadow: 0 0 20px var(--teal-light); }
+}
+.juice-centroid-entrance .meld-indicator {
+  animation: meld-glow 1.5s ease-in-out infinite;
+  color: var(--teal-light);
 }
 
 .reveal-content {

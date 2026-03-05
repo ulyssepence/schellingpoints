@@ -1,5 +1,7 @@
 import * as React from 'react'
 import * as t from './types'
+import * as features from './features'
+import confetti from 'canvas-confetti'
 import { Box } from './mail'
 import { Timer } from './components/timer'
 import { ScatterPlot } from './components/ScatterPlot'
@@ -20,16 +22,54 @@ type Props = {
   secsLeft?: number
   isReady: [t.PlayerId, boolean][]
   otherPlayers: [t.PlayerId, t.PlayerName, t.Mood][]
+  audioPlayer: t.State['audioPlayer']
 }
 
-export function Reveal({ gameId, playerId, playerName, mailbox, centroidWord, centroidIsRepeat, positions, guesses, melded, round, totalRounds, secsLeft, isReady, otherPlayers }: Props) {
+export function Reveal({ gameId, playerId, playerName, mailbox, centroidWord, centroidIsRepeat, positions, guesses, melded, round, totalRounds, secsLeft, isReady, otherPlayers, audioPlayer }: Props) {
   const totalDuration = React.useRef(secsLeft).current
+  const celebratedRef = React.useRef(false)
 
   const nameOf = new Map(otherPlayers.map(([id, name]) => [id, name]))
   nameOf.set(playerId, playerName)
 
   const myGuess = guesses.find(([id]) => id === playerId)?.[1]
   const amReady = isReady.find(([id]) => id === playerId)?.[1] ?? false
+
+  React.useEffect(() => {
+    if (!melded || celebratedRef.current) return
+    celebratedRef.current = true
+
+    if (features.flag('meldCelebration')) {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        disableForReducedMotion: true,
+      })
+
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      if (!prefersReduced) {
+        const body = document.body
+        let trauma = 1
+        const start = performance.now()
+        function shake(now: number) {
+          const elapsed = now - start
+          if (elapsed > 300) { body.style.transform = ''; return }
+          trauma = Math.max(0, 1 - elapsed / 300)
+          const t2 = trauma * trauma
+          const dx = (Math.random() * 2 - 1) * t2 * 4
+          const dy = (Math.random() * 2 - 1) * t2 * 4
+          body.style.transform = `translate(${dx}px, ${dy}px)`
+          requestAnimationFrame(shake)
+        }
+        requestAnimationFrame(shake)
+      }
+    }
+
+    if (features.flag('soundExpansion')) {
+      audioPlayer.playSound('MeldCelebration')
+    }
+  }, [melded])
 
   function handleToggleReady() {
     mailbox.send({ type: 'REVEAL_READY', gameId, playerId, isReady: !amReady })
@@ -63,7 +103,7 @@ export function Reveal({ gameId, playerId, playerName, mailbox, centroidWord, ce
 
       <div className="reveal-content">
         {positions.length > 0 && (
-          <ScatterPlot positions={positions} playerId={playerId} nameOf={nameOf} guesses={guesses} />
+          <ScatterPlot positions={positions} playerId={playerId} nameOf={nameOf} guesses={guesses} melded={melded} />
         )}
 
         <div className="my-guess">
