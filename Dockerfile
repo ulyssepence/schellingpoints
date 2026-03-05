@@ -5,7 +5,7 @@ ENV APP_VERSION=$APP_VERSION
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --ignore-scripts
 COPY . .
-RUN bun scripts/build.ts
+RUN API_HOST=schellingpoints.app bun scripts/build.ts
 RUN bunx @capgo/cli bundle zip --path dist --name bundle && mv bundle dist/bundle.zip
 
 FROM oven/bun
