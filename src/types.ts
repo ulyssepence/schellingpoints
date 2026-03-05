@@ -28,3 +28,4 @@ export type ToClientMessage =
   | { type: 'NO_SUCH_GAME', gameId: GameId }
   | { type: 'VERSION_MISMATCH' }
   | { type: 'CONNECTION_STATUS', connected: boolean }
+  | { type: 'NETWORK_STATUS', online: boolean }

@@ -275,6 +275,21 @@ p {
 .debug-menu hr { border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 4px 0; }
 .debug-apply { margin-top: 8px; padding: 10px; font-size: 0.7rem; }
 
+.offline-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99;
+    padding: calc(env(safe-area-inset-top, 0px) + 6px) 0 6px;
+    text-align: center;
+    background: rgba(200, 60, 60, 0.85);
+    color: var(--cream);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+}
+
 .reconnecting-overlay {
     position: fixed;
     inset: 0;

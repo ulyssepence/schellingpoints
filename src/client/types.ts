@@ -21,6 +21,7 @@ export type State = {
   playerName: string,
   mood: t.Mood,
   connected: boolean,
+  networkOnline: boolean,
 }
 
 export function initialState(): State {
@@ -43,5 +44,6 @@ export function initialState(): State {
     playerName,
     mood: (localStorage.getItem('mood') as t.Mood) ?? '😀',
     connected: false,
+    networkOnline: true,
   }
 }

@@ -13,6 +13,7 @@ import * as features from './client/features'
 import * as gameEvents from './client/gameEvents'
 import * as haptics from './client/haptics'
 import * as push from './client/push'
+import * as network from './client/network'
 import { PlayerRing } from "./client/PlayerRing"
 import { MoodPicker } from './client/MoodPicker'
 
@@ -91,6 +92,9 @@ function onMessage(state: t.State, message: t.ToClientMessage): t.State {
     case 'CONNECTION_STATUS':
       return { ...state, connected: message.connected }
 
+    case 'NETWORK_STATUS':
+      return { ...state, networkOnline: message.online }
+
     case 'NO_SUCH_GAME':
       // TODO: Create notification?
       return state
@@ -129,6 +133,9 @@ function App({ gameId }: Props) {
       history.pushState(null, '', `/game/${pendingGameId}`)
       dispatchEvent(new PopStateEvent('popstate'))
     }
+    const cleanupNetwork = network.listenNetwork(connected => {
+      dispatch({ type: 'NETWORK_STATUS', online: connected })
+    })
     state.mailbox.onReconnect = () => {
       const info = reconnectInfoRef.current
       if (!info) return
@@ -150,6 +157,7 @@ function App({ gameId }: Props) {
         })
       }
     }
+    return cleanupNetwork
   }, [])
 
   React.useEffect(() => {
@@ -218,13 +226,18 @@ function App({ gameId }: Props) {
     })
   }, [gameId, playerName])
 
-  const showReconnecting = hasConnected.current && !state.connected
+  const offlineBanner = !state.networkOnline
+    ? <div className="offline-banner">No connection — waiting for network</div>
+    : null
+
+  const showReconnecting = hasConnected.current && !state.connected && state.networkOnline
   const reconnectOverlay = showReconnecting
     ? <div className="reconnecting-overlay"><p>Reconnecting...</p></div>
     : null
 
   if (gameId && !playerName) {
     return <>
+      {offlineBanner}
       {reconnectOverlay}
       <div className="screen lounge">
         <div className="title-block">
@@ -362,6 +375,7 @@ function App({ gameId }: Props) {
   }, [rawKey])
 
   return <>
+    {offlineBanner}
     {reconnectOverlay}
     <React.Fragment key={screenKey}>{screen}</React.Fragment>
   </>
