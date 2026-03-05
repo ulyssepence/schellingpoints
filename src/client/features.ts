@@ -29,10 +29,10 @@ const DEFAULTS: Flags = {
   timerUrgency: true,
   historyStagger: true,
   soundExpansion: true,
-  scatterAnimation: false,
-  scatterEnhancements: false,
-  meldCelebration: false,
-  backgroundReactivity: false,
+  scatterAnimation: true,
+  scatterEnhancements: true,
+  meldCelebration: true,
+  backgroundReactivity: true,
 }
 
 const STORAGE_KEY = 'juice_flags'
