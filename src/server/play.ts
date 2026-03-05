@@ -5,6 +5,7 @@ import * as util from './util'
 import * as scoring from './scoring'
 import * as pushTokens from './push-tokens'
 import * as apns from './apns'
+import * as persist from './persist'
 import { filterPromptRepetitions, detectMeld } from './meld'
 
 function pickRandomPrompt(categories: t.Category[]): string {
@@ -19,12 +20,23 @@ export function startTicking(
   const state = startingState
   let timeSecs = util.nowSecs()
   let deltaSecs = 0
+  let secsSinceLastPersist = 0
 
   const tick = () => {
     const now = util.nowSecs()
     deltaSecs = now - timeSecs
     timeSecs = now
     onTick(state, timeSecs, deltaSecs)
+
+    secsSinceLastPersist += deltaSecs
+    if (secsSinceLastPersist >= persist.PERSIST_INTERVAL_SECS) {
+      try {
+        persist.syncAll(state.games)
+      } catch (err) {
+        console.error('persist.syncAll failed:', err)
+      }
+      secsSinceLastPersist = 0
+    }
   }
 
   setInterval(tick, tickMilliseconds);
@@ -48,6 +60,7 @@ export function newGuessPhase(round: number, prompt: string): t.Phase {
 
 
 export function onTickGame(gameId: t.GameId, game: t.Game, timeSecs: number, deltaSecs: number, state: t.State) {
+  if (game.paused) return
   const phase = game.phase
   switch (phase.type) {
     case 'LOBBY': {
@@ -200,6 +213,7 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
         if (alreadyPlayer.disconnectedAt) {
           alreadyPlayer.disconnectedAt = undefined
         }
+        if (game.paused) game.paused = false
       } else {
         game.players.push({
           id: message.playerId,
@@ -216,7 +230,7 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
       if (!alreadyPlayer) {
         for (const player of game.players) {
           if (player.id === message.playerId) continue
-          if (player.webSocket.readyState === WebSocket.OPEN) continue
+          if (player.webSocket && player.webSocket.readyState === WebSocket.OPEN) continue
           for (const token of pushTokens.getTokensForPlayer(player.id)) {
             apns.sendLobbyJoinNotification(token, message.gameId, message.playerName)
           }
@@ -240,6 +254,7 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
 
       if (game.players.length === 0) {
         state.games.delete(message.gameId)
+        persist.deleteGame(message.gameId)
       } else if (game.players.length === 1 && game.phase.type !== 'LOBBY') {
         endGame(message.gameId, game, state, false)
       }
@@ -275,7 +290,7 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
       game.broadcast(currentGameState(message.gameId, game))
 
       const livePlayerIds = game.players
-        .filter(info => info.webSocket.readyState === WebSocket.OPEN)
+        .filter(info => info.webSocket && info.webSocket.readyState === WebSocket.OPEN)
         .map(info => info.id)
       const allReady = livePlayerIds.length >= 2 && livePlayerIds.every(id => lobby.isReady.has(id))
       if (allReady) {
@@ -303,7 +318,7 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
       game.broadcast(currentGameState(message.gameId, game))
 
       const livePlayerIds = game.players
-        .filter(info => info.webSocket.readyState === WebSocket.OPEN)
+        .filter(info => info.webSocket && info.webSocket.readyState === WebSocket.OPEN)
         .map(info => info.id)
       const allReady = 0 < livePlayerIds.length && livePlayerIds.every(id => phase.isReady.has(id))
       if (allReady) {
@@ -322,7 +337,7 @@ export function onClientMessage(state: t.State, message: t.ToServerMessage, webS
 
       const phase = game.phase
       const livePlayerIds = game.players
-        .filter(p => p.webSocket.readyState === WebSocket.OPEN)
+        .filter(p => p.webSocket && p.webSocket.readyState === WebSocket.OPEN)
         .map(p => p.id)
       const allGuessed = livePlayerIds.length > 0
         && livePlayerIds.every(id => phase.guesses.has(id))
@@ -451,6 +466,7 @@ export function endGame(
 
   // 3. Delete the game from state.games
   state.games.delete(gameId)
+  persist.deleteGame(gameId)
 
   // 4. Broadcast lounge change (existing loungers see new players)
   state.broadcastLoungeChange()
@@ -464,7 +480,7 @@ export function checkContinueVotes(
   if (game.phase.type !== 'CONTINUE') return
 
   const liveIds = game.players
-    .filter(p => p.webSocket.readyState === WebSocket.OPEN)
+    .filter(p => p.webSocket && p.webSocket.readyState === WebSocket.OPEN)
     .map(p => p.id)
 
   // isLeaving players are already removed from game.players,
@@ -517,7 +533,7 @@ export function checkPlayAgainVotes(
   if (game.phase.type !== 'PLAY_AGAIN') return
 
   const liveIds = game.players
-    .filter(p => p.webSocket.readyState === WebSocket.OPEN)
+    .filter(p => p.webSocket && p.webSocket.readyState === WebSocket.OPEN)
     .map(p => p.id)
 
   const allVoted = liveIds.every(id =>
@@ -738,7 +754,7 @@ export function onPlayerDisconnect(
 
 function livePlayerIdsIn(game: t.Game): t.PlayerId[] {
   return game.players
-    .filter(p => p.webSocket.readyState === WebSocket.OPEN)
+    .filter(p => p.webSocket && p.webSocket.readyState === WebSocket.OPEN)
     .map(p => p.id)
 }
 
@@ -820,10 +836,14 @@ export function startReaper(state: t.State, opts: ReaperOptions = {}) {
 
   return setInterval(() => {
     const now = Date.now()
+    persist.cleanupStaleRows()
     for (const [gameId, game] of state.games) {
       if (isCullable(game, now, ttlMs)) {
-        for (const p of game.players) p.webSocket.terminate()
+        for (const p of game.players) {
+          if (p.webSocket) p.webSocket.terminate()
+        }
         state.games.delete(gameId)
+        persist.deleteGame(gameId)
         console.log('culled stale game', gameId)
         continue
       }

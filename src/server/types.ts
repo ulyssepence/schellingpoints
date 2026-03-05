@@ -40,14 +40,14 @@ export class Game {
   currentPrompt = ''
   scoringRetries = 0
   lastStateChangeAt = Date.now()
+  paused = false
 
   unicast(playerId: t.PlayerId, message: t.ToClientMessage) {
     const player = this.players.find(info => info.id === playerId)
     if (!player) {
       console.warn('unicast: player not found', playerId)
       return
-    } else if (player.webSocket.readyState !== WebSocket.OPEN) {
-      console.warn('unicast: WebSocket not open', playerId)
+    } else if (!player.webSocket || player.webSocket.readyState !== WebSocket.OPEN) {
       return
     }
 

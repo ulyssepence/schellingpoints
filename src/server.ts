@@ -7,6 +7,7 @@ import * as t from './server/types'
 import * as categories from './server/categories'
 import * as db from './server/db'
 import * as apns from './server/apns'
+import * as persist from './server/persist'
 import { loadVocab } from './server/vocab'
 
 import path from 'path';
@@ -46,9 +47,20 @@ api.addStatic(
 )
 
 db.init()
+persist.loadGames(state)
 apns.init()
 play.startTicking(state, 100)
 play.startReaper(state)
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, flushing game state...')
+  try {
+    persist.syncAll(state.games)
+  } catch (err) {
+    console.error('Final persist flush failed:', err)
+  }
+  process.exit(0)
+})
 
 const port = Number(process.env.PORT) || 8000
 app.listen(port, '0.0.0.0')
