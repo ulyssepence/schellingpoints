@@ -1,21 +1,21 @@
-import Database from 'better-sqlite3'
+import { Database } from 'bun:sqlite'
 
-const DB_PATH = process.env.DB_PATH || '/data/schellingpoints/schelling.db'
+const DB_PATH = process.env.DB_PATH || 'data/schelling.db'
 
-let db: Database.Database
+let db: Database
 
 export function init() {
-  db = new Database(DB_PATH)
-  db.pragma('journal_mode = WAL')
-  db.exec(`
+  db = new Database(DB_PATH, { create: true })
+  db.run('PRAGMA journal_mode = WAL')
+  db.run(`
     CREATE TABLE IF NOT EXISTS push_tokens (
       device_token TEXT PRIMARY KEY,
       player_id TEXT NOT NULL
     )
   `)
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_push_tokens_player ON push_tokens(player_id)`)
+  db.run(`CREATE INDEX IF NOT EXISTS idx_push_tokens_player ON push_tokens(player_id)`)
 }
 
-export function get(): Database.Database {
+export function get(): Database {
   return db
 }

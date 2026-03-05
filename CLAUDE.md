@@ -4,8 +4,8 @@ Jackbox-style mobile word game. Players submit answers to category prompts, resp
 
 - **Frontend:** React 19 + React Router 7 + esbuild
 - **Backend:** Express 5 + express-ws (WebSocket)
-- **Package manager:** Bun (server runs via `tsx`, not `bun` directly)
-- **State:** In-memory (no database)
+- **Package manager & runtime:** Bun
+- **State:** In-memory (SQLite for push tokens only)
 - **Architecture:** `docs/solutions/2026-02-18-codebase-review-handoff.md`
 
 ## Conventions

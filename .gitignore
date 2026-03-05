@@ -14,3 +14,5 @@ scoring-sandbox/dist/
 
 # Built vocab embeddings (large, generated locally)
 data/vocab-embeddings.json
+data/schelling.db*
+data/AuthKey.p8
