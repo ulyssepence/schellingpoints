@@ -10,6 +10,7 @@ if [ -d "$PVC" ]; then
   fi
   ln -sf "$EMBEDDINGS" data/vocab-embeddings.json
   export DB_PATH=$PVC/schelling.db
+  export APNS_KEY_PATH=$PVC/AuthKey.p8
 fi
 
 exec bun src/server.ts

@@ -2,7 +2,7 @@ import apn from '@parse/node-apn'
 import fs from 'fs'
 import * as pushTokens from './push-tokens'
 
-const APNS_KEY_PATH = process.env.APNS_KEY_PATH || '/data/schellingpoints/AuthKey.p8'
+const APNS_KEY_PATH = process.env.APNS_KEY_PATH || 'data/AuthKey.p8'
 const APNS_KEY_ID = 'P68Y4GSD5W'
 const APNS_TEAM_ID = 'M86QA9WVD2'
 
