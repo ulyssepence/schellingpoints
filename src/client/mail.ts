@@ -33,6 +33,8 @@ export class Box {
       }
       this.outbox = []
 
+      // Skip first connect — outbox drain handles it. onReconnect would send
+      // stale JOIN_LOUNGE before React updates the reconnect ref.
       if (this.hasConnected && this.onReconnect) this.onReconnect()
       this.hasConnected = true
     }

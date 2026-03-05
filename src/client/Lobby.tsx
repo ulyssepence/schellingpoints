@@ -26,6 +26,33 @@ function gameUrl(id: string): string {
   return `${origin}/game/${id}`
 }
 
+function LazyQrPopover({ url }: { url: string }) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [shown, setShown] = React.useState(false)
+  React.useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const show = () => setShown(true)
+    el.addEventListener('toggle', show)
+    return () => el.removeEventListener('toggle', show)
+  }, [])
+  return (
+    <div id="qr-popover" popover="auto" ref={ref}>
+      {shown && <QRCode
+        value={url}
+        size={180}
+        qrStyle="dots"
+        bgColor="transparent"
+        fgColor="#eae0d0"
+        eyeRadius={8}
+        eyeColor="#3abba5"
+        quietZone={8}
+        ecLevel="M"
+      />}
+    </div>
+  )
+}
+
 export function Lobby({ mailbox, playerId, gameId, isReady, secsLeft, mood, playerName, otherPlayers }: Props) {
   const [currentMood, setCurrentMood] = React.useState(
     (localStorage.getItem('mood') as t.Mood) ?? mood
@@ -57,19 +84,7 @@ export function Lobby({ mailbox, playerId, gameId, isReady, secsLeft, mood, play
           <line x1="18" y1="22" x2="22" y2="22" />
         </svg>
       </button>
-      <div id="qr-popover" popover="auto">
-        <QRCode
-          value={url}
-          size={180}
-          qrStyle="dots"
-          bgColor="transparent"
-          fgColor="#eae0d0"
-          eyeRadius={8}
-          eyeColor="#3abba5"
-          quietZone={8}
-          ecLevel="M"
-        />
-      </div>
+      <LazyQrPopover url={url} />
     </>)
   }
 

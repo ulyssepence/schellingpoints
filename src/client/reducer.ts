@@ -12,8 +12,7 @@ export function onMessage(state: t.State, message: t.ToClientMessage): t.State {
     }
 
     case 'LOBBY_STATE':
-      console.log(message)
-      return { ...state, view: { type: 'LOBBY', gameId: message.gameId, isReady: message.isReady }, otherPlayers: [], gameNotFound: false }
+      return { ...state, view: { type: 'LOBBY', gameId: message.gameId, isReady: message.isReady }, gameNotFound: false }
 
     case 'GUESS_STATE':
       return { ...state, view: { type: 'GUESSES', gameId: message.gameId, hasGuessed: message.hasGuessed, prompt: message.prompt, secsLeft: message.secsLeft, round: message.round, totalRounds: message.totalRounds } }
