@@ -122,7 +122,7 @@ function App({ gameId }: Props) {
       if (features.flag('soundExpansion')) state.audioPlayer.playSound('RevealStinger', { volume: 0.5 })
       if (state.view.melded) gameEvents.emit('meld')
     }
-    if (prev !== state.view.type && features.flag('soundExpansion')) {
+    if (prev !== state.view.type && prev !== 'LOUNGE' && features.flag('soundExpansion')) {
       state.audioPlayer.playSound('TransitionSwoosh', { volume: 0.2 })
     }
   }, [state.view.type])

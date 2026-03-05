@@ -1,9 +1,6 @@
 import * as howler from 'howler'
 
 export type Clip =
-  | 'Ex'
-  | 'Oh'
-  | 'Winner'
   | 'PlayerJoined'
   | 'RoundStart'
   | 'SubmitClick'
