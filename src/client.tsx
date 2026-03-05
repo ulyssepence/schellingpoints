@@ -166,6 +166,26 @@ function App({ gameId }: Props) {
     ? <div className="reconnecting-overlay"><p>Reconnecting...</p></div>
     : null
 
+  const rawKey = state.view.type + ('round' in state.view ? `-${state.view.round}` : '')
+  const [screenKey, setScreenKey] = React.useState(rawKey)
+  const keyTimer = React.useRef<ReturnType<typeof setTimeout>>()
+  const lastKeyTime = React.useRef(0)
+  React.useEffect(() => {
+    clearTimeout(keyTimer.current)
+    const now = Date.now()
+    const elapsed = now - lastKeyTime.current
+    if (elapsed < 150) {
+      keyTimer.current = setTimeout(() => {
+        setScreenKey(rawKey)
+        lastKeyTime.current = Date.now()
+      }, 100)
+    } else {
+      setScreenKey(rawKey)
+      lastKeyTime.current = now
+    }
+    return () => clearTimeout(keyTimer.current)
+  }, [rawKey])
+
   if (gameId && !playerName) {
     return <>
       {offlineBanner}
@@ -294,26 +314,6 @@ function App({ gameId }: Props) {
       screen = _exhaustive
     }
   }
-
-  const rawKey = state.view.type + ('round' in state.view ? `-${state.view.round}` : '')
-  const [screenKey, setScreenKey] = React.useState(rawKey)
-  const keyTimer = React.useRef<ReturnType<typeof setTimeout>>()
-  const lastKeyTime = React.useRef(0)
-  React.useEffect(() => {
-    clearTimeout(keyTimer.current)
-    const now = Date.now()
-    const elapsed = now - lastKeyTime.current
-    if (elapsed < 150) {
-      keyTimer.current = setTimeout(() => {
-        setScreenKey(rawKey)
-        lastKeyTime.current = Date.now()
-      }, 100)
-    } else {
-      setScreenKey(rawKey)
-      lastKeyTime.current = now
-    }
-    return () => clearTimeout(keyTimer.current)
-  }, [rawKey])
 
   return <>
     {offlineBanner}
