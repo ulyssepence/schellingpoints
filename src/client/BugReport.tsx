@@ -104,7 +104,7 @@ export function BugButton() {
           <path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" />
         </svg>
       </button>
-      <span className="version-label">{import.meta.env.APP_VERSION}</span>
+      <span className="version-label">{import.meta.env.APP_VERSION.slice(0, 7)}</span>
     </span>
   )
 }
