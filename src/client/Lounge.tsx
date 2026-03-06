@@ -4,6 +4,7 @@ import { Box } from './mail'
 import { MoodPicker } from './MoodPicker'
 import { PlayerRing } from './PlayerRing'
 import { InstructionsPopover } from './InstructionsPopover'
+import { BugButton } from './BugReport'
 
 type Props = {
   mailbox: Box
@@ -44,7 +45,10 @@ export function Lounge({ mailbox, playerId, mood, otherPlayers }: Props) {
       <div className="screen lounge">
         <div className="screen-topbar">
           <span />
-          <InstructionsPopover autoShow />
+          <div className="topbar-actions">
+            <BugButton />
+            <InstructionsPopover autoShow />
+          </div>
         </div>
         <div className="title-ring-group">
           <PlayerRing />
@@ -72,7 +76,10 @@ export function Lounge({ mailbox, playerId, mood, otherPlayers }: Props) {
     <div className="screen lounge">
       <div className="screen-topbar">
         <div> </div>
-        <InstructionsPopover />
+        <div className="topbar-actions">
+          <BugButton />
+          <InstructionsPopover />
+        </div>
       </div>
       <div className="screen-header">
         <div className="title-block">

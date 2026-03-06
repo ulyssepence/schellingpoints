@@ -21,6 +21,7 @@
     "@capacitor/ios": "^8.1.0",
     "@capacitor/network": "^8.0.1",
     "@capacitor/push-notifications": "^8.0.1",
+    "@capgo/capacitor-shake": "^8.0.22",
     "@capgo/capacitor-updater": "^8.43.9",
     "@parse/node-apn": "^7.1.0",
     "canvas-confetti": "^1.9.4",

@@ -8,6 +8,7 @@ import * as categories from './server/categories'
 import * as db from './server/db'
 import * as apns from './server/apns'
 import * as persist from './server/persist'
+import * as bugReport from './server/bug-report'
 import { loadVocab } from './server/vocab'
 
 import path from 'path';
@@ -41,6 +42,7 @@ api.addWebsockets(
 )
 
 updates.addRoutes(app)
+bugReport.addRoutes(app)
 
 api.addStatic(
   app,

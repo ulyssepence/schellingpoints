@@ -18,6 +18,9 @@ import { App as CapApp } from '@capacitor/app'
 import { PlayerRing } from "./client/PlayerRing"
 import { MoodPicker } from './client/MoodPicker'
 import { onMessage } from './client/reducer'
+import { ErrorBoundary } from './client/ErrorBoundary'
+import { BugReportProvider } from './client/BugReport'
+import { initShake } from './client/shake'
 
 const router = Router.createBrowserRouter([
   {
@@ -345,10 +348,23 @@ function App({ gameId }: Props) {
 
 features.applyBodyClasses()
 
+let openBugReport = (_: boolean) => {}
+initShake(() => openBugReport(true))
+
+function Root() {
+  return (
+    <BugReportProvider onMount={setOpen => { openBugReport = setOpen }}>
+      <Router.RouterProvider router={router} />
+    </BugReportProvider>
+  )
+}
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ScreenBackground />
     <DebugMenu />
-    <Router.RouterProvider router={router} />
+    <ErrorBoundary>
+      <Root />
+    </ErrorBoundary>
   </React.StrictMode>
 )

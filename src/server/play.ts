@@ -6,6 +6,7 @@ import * as scoring from './scoring'
 import * as pushTokens from './push-tokens'
 import * as apns from './apns'
 import * as persist from './persist'
+import * as bugReport from './bug-report'
 import { filterPromptRepetitions, detectMeld } from './meld'
 
 function pickRandomPrompt(categories: t.Category[]): string {
@@ -828,6 +829,7 @@ export function startReaper(state: t.State, opts: ReaperOptions = {}) {
   return setInterval(() => {
     const now = Date.now()
     persist.cleanupStaleRows()
+    bugReport.cleanup()
     for (const [gameId, game] of state.games) {
       if (isCullable(game, now, ttlMs)) {
         for (const p of game.players) {

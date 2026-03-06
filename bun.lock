@@ -11,6 +11,7 @@
         "@capacitor/ios": "^8.1.0",
         "@capacitor/network": "^8.0.1",
         "@capacitor/push-notifications": "^8.0.1",
+        "@capgo/capacitor-shake": "^8.0.22",
         "@capgo/capacitor-updater": "^8.43.9",
         "@parse/node-apn": "^7.1.0",
         "canvas-confetti": "^1.9.4",
@@ -54,6 +55,8 @@
     "@capacitor/network": ["@capacitor/network@8.0.1", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-9xK/FHFmzKGanB6BdoSZOzXk8vF0OFVQSQ4PAsIrzAzLuXHryO317qy8dcHVpgxYeuZq2noI0My9z1DvVDi/9w=="],
 
     "@capacitor/push-notifications": ["@capacitor/push-notifications@8.0.1", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-CDY6syMxdG81Epn+V4fCYRR4L9tVS72F1kVrTY2ka6umWy4BmwXOXPsxGxlE5PmHLOhmBwKpy3uOiIJtSpMhOw=="],
+
+    "@capgo/capacitor-shake": ["@capgo/capacitor-shake@8.0.22", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-wsHgz5wTiAaXIhqIJypw7OfRQxk9Y2olarZvwhGwFq6BMH7P+XyqVC0Fa+OespZg1YeTbNewxgRnYtTyP4tI7w=="],
 
     "@capgo/capacitor-updater": ["@capgo/capacitor-updater@8.43.9", "", { "peerDependencies": { "@capacitor/core": "^8.0.0" } }, "sha512-TONe8vGKr5q1+ZsEU4kschVrEkafRheJE8W62z3ZSKehaUfBQbnPXDOQaG0U5KzBz6N5xe2EsmMUUKzqFLhIYw=="],
 

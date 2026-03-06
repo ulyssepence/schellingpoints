@@ -11,6 +11,7 @@ if [ -d "$PVC" ]; then
   ln -sf "$EMBEDDINGS" data/vocab-embeddings.json
   export DB_PATH=$PVC/schelling.db
   export APNS_KEY_PATH=$PVC/AuthKey.p8
+  [ -f "$PVC/github-env" ] && . "$PVC/github-env"
 fi
 
 exec bun src/server.ts

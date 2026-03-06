@@ -307,3 +307,85 @@ p {
     font-size: 0.85rem;
     animation: pulse-scoring 1.5s ease-in-out infinite;
 }
+
+.bug-report-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 8, 14, 0.85);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.bug-report-modal {
+    width: 90%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(8, 8, 14, 0.95);
+}
+
+.bug-report-modal h2 {
+    font-family: var(--font-fancy);
+    color: var(--cream);
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.bug-report-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.bug-report-stack {
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.4);
+    max-height: 100px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.bug-report-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.bug-report-actions .btn {
+    flex: 1;
+}
+
+.topbar-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.game-id-link {
+    font-weight: bold;
+    text-decoration: underline;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+}
+
+.game-switcher-popover {
+    background: rgba(8, 8, 14, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.game-switcher-popover form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}

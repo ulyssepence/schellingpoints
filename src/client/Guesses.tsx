@@ -5,6 +5,7 @@ import * as haptics from './haptics'
 import { Box } from './mail'
 import { Timer } from './components/timer'
 import { playerColor } from './playerColor'
+import { BugButton } from './BugReport'
 
 function GuessInput(props: { onSubmit: (guess: string) => void, locked: boolean, audioPlayer: t.State['audioPlayer'] }) {
   const [guess, setGuess] = React.useState('')
@@ -140,7 +141,7 @@ export function Guesses({ mailbox, playerId, gameId, prompt, secsLeft, hasGuesse
   return (
     <div className={screenClasses}>
       <div className="screen-topbar">
-        <button className="btn-back">‹</button>
+        <BugButton />
         {scoring
           ? <div className="timer scoring"><p>...</p></div>
           : <div className={timerClasses} style={{ '--timer-duration': `${totalDuration}s` } as React.CSSProperties}>

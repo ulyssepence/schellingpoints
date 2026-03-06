@@ -5,6 +5,7 @@ import confetti from 'canvas-confetti'
 import { Box } from './mail'
 import { Timer } from './components/timer'
 import { ScatterPlot } from './components/ScatterPlot'
+import { BugButton } from './BugReport'
 
 type Props = {
   gameId: t.GameId
@@ -82,7 +83,7 @@ export function Reveal({ gameId, playerId, playerName, mailbox, centroidWord, ce
   return (
     <div className="screen reveal">
       <div className="screen-topbar">
-        <span />
+        <BugButton />
         {secsLeft !== undefined
           ? <div className="timer" style={{ '--timer-duration': `${totalDuration}s` } as React.CSSProperties}>
               <svg viewBox="0 0 50 50">

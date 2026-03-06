@@ -7,6 +7,7 @@ import { Timer } from './components/timer'
 import { PlayerRing } from './PlayerRing'
 import { MoodPicker } from './MoodPicker'
 import { InstructionsPopover } from './InstructionsPopover'
+import { BugButton } from './BugReport'
 
 type Props = {
   mailbox: Box
@@ -114,11 +115,27 @@ export function Lobby({ mailbox, playerId, gameId, isReady, secsLeft, mood, play
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <InstructionsPopover autoShow={!localStorage.getItem('schelling-instructions-seen')} />
+        <div className="topbar-actions">
+          <BugButton />
+          <InstructionsPopover autoShow={!localStorage.getItem('schelling-instructions-seen')} />
+        </div>
       </div>
       <div className="screen-header">
         <h1>Lobby</h1>
-        <h2>Your Game is: {gameId}</h2>
+        <h2>Your Game is: <button className="game-id-link" popoverTarget="game-switcher">{gameId}</button></h2>
+        <div id="game-switcher" popover="auto" className="game-switcher-popover">
+          <form onSubmit={e => {
+            e.preventDefault()
+            const input = (e.currentTarget.elements as any).newGameId as HTMLInputElement
+            const newId = input.value.trim()
+            if (!newId || newId === gameId) return
+            mailbox.send({ type: 'LEAVE_GAME', gameId, playerId })
+            window.location.href = gameUrl(newId)
+          }}>
+            <input name="newGameId" className="input" defaultValue={gameId} autoFocus />
+            <button type="submit" className="btn">Go</button>
+          </form>
+        </div>
       </div>
       <PlayerRing players={otherPlayers} isReady={isReady} />
       <div className="screen-footer">

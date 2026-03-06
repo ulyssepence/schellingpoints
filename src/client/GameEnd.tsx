@@ -3,6 +3,7 @@ import * as t from './types'
 import * as updater from './updater'
 import { Box } from './mail'
 import { InstructionsPopover } from './InstructionsPopover'
+import { BugButton } from './BugReport'
 
 type BaseProps = {
   gameId: t.GameId
@@ -91,7 +92,10 @@ export function GameEnd(props: Props) {
       <div className="screen game-end">
         <div className="screen-topbar">
           <button className="btn-back" onClick={handleBackToLounge}>‹</button>
-          <InstructionsPopover />
+          <div className="topbar-actions">
+            <BugButton />
+            <InstructionsPopover />
+          </div>
         </div>
         <div className="screen-header">
           <h1>Round 20 Reached</h1>
