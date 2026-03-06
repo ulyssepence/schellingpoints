@@ -90,6 +90,7 @@ export function BugButton() {
   const { setOpen } = React.useContext(BugReportContext)
   return (
     <span className="bug-button-group">
+      <span className="version-label">{import.meta.env.APP_VERSION.slice(0, 7)}</span>
       <button className="btn-icon" onClick={() => setOpen(true)} aria-label="Report bug">
         <svg className="icon" width="18" height="18" viewBox="0 0 24 24"
           fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
@@ -104,7 +105,6 @@ export function BugButton() {
           <path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" />
         </svg>
       </button>
-      <span className="version-label">{import.meta.env.APP_VERSION.slice(0, 7)}</span>
     </span>
   )
 }

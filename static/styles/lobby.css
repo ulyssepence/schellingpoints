@@ -84,8 +84,9 @@
 
 .version-label {
     font-size: 10px;
-    color: #666;
+    color: #444;
     font-family: monospace;
+    line-height: 1;
 }
 
 .footer-buttons .btn-icon {
