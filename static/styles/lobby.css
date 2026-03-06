@@ -76,6 +76,18 @@
     cursor: pointer;
 }
 
+.bug-button-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.version-label {
+    font-size: 10px;
+    color: #666;
+    font-family: monospace;
+}
+
 .footer-buttons .btn-icon {
     display: flex;
     align-items: center;

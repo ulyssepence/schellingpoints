@@ -289,19 +289,15 @@ function App({ gameId }: Props) {
       screen = <Reveal
         gameId={state.view.gameId}
         playerId={state.playerId}
-        playerName={playerName}
-        mood={currentMood}
         mailbox={state.mailbox}
         centroidWord={state.view.centroidWord}
         centroidIsRepeat={state.view.centroidIsRepeat}
         positions={state.view.positions}
-        guesses={state.view.guesses}
         melded={state.view.melded}
         round={state.view.round}
         totalRounds={state.view.totalRounds}
         secsLeft={state.view.secsLeft}
         isReady={state.view.isReady}
-        otherPlayers={state.otherPlayers}
         audioPlayer={state.audioPlayer}
       />
       break

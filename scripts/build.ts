@@ -4,7 +4,8 @@ import * as path from 'path'
 
 const watch = process.argv.includes('--watch')
 const apiHost = process.env.API_HOST || ''
-const appVersion = process.env.APP_VERSION || 'dev'
+const gitSha = Bun.spawnSync(['git', 'rev-parse', '--short', 'HEAD']).stdout.toString().trim()
+const appVersion = process.env.APP_VERSION || gitSha || 'dev'
 
 const cssFiles = fs.readdirSync('static/styles').filter(f => f.endsWith('.css'))
 const cssLinks = [

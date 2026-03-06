@@ -10,30 +10,22 @@ import { BugButton } from './BugReport'
 type Props = {
   gameId: t.GameId
   playerId: t.PlayerId
-  playerName: t.PlayerName
-  mood: t.Mood
   mailbox: Box
   centroidWord: string
   centroidIsRepeat: boolean
   positions: [t.PlayerId, number, number][]
-  guesses: [t.PlayerId, string][]
   melded: boolean
   round: number
   totalRounds: number
   secsLeft?: number
   isReady: [t.PlayerId, boolean][]
-  otherPlayers: [t.PlayerId, t.PlayerName, t.Mood][]
   audioPlayer: t.State['audioPlayer']
 }
 
-export function Reveal({ gameId, playerId, playerName, mailbox, centroidWord, centroidIsRepeat, positions, guesses, melded, round, totalRounds, secsLeft, isReady, otherPlayers, audioPlayer }: Props) {
+export function Reveal({ gameId, playerId, mailbox, centroidWord, centroidIsRepeat, positions, melded, round, totalRounds, secsLeft, isReady, audioPlayer }: Props) {
   const totalDuration = React.useRef(secsLeft).current
   const celebratedRef = React.useRef(false)
 
-  const nameOf = new Map(otherPlayers.map(([id, name]) => [id, name]))
-  nameOf.set(playerId, playerName)
-
-  const myGuess = guesses.find(([id]) => id === playerId)?.[1]
   const amReady = isReady.find(([id]) => id === playerId)?.[1] ?? false
 
   React.useEffect(() => {
@@ -104,12 +96,9 @@ export function Reveal({ gameId, playerId, playerName, mailbox, centroidWord, ce
 
       <div className="reveal-content">
         {positions.length > 0 && (
-          <ScatterPlot positions={positions} playerId={playerId} nameOf={nameOf} guesses={guesses} melded={melded} />
+          <ScatterPlot positions={positions} playerId={playerId} melded={melded} />
         )}
 
-        <div className="my-guess">
-          <p>You said: {myGuess ? `"${myGuess}"` : '—'}</p>
-        </div>
       </div>
 
       <div className="screen-footer">
