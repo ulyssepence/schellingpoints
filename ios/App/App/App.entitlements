@@ -6,7 +6,10 @@
 	<string>development</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
+		<string>applinks:schellingpoints.app?mode=developer</string>
 		<string>applinks:schellingpoints.app</string>
 	</array>
+	<key>com.apple.developer.associated-domains.mdm-managed</key>
+	<true/>
 </dict>
 </plist>
