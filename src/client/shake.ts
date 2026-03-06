@@ -2,13 +2,8 @@ import { Capacitor } from '@capacitor/core'
 
 export function initShake(onShake: () => void) {
   if (!Capacitor.isNativePlatform()) return
-  import('@capgo/capacitor-shake').then(({ Shake }) => {
-    console.log('[shake] registering listener')
-    Shake.addListener('shake', () => {
-      console.log('[shake] shake detected')
-      onShake()
-    })
-  }).catch(err => {
-    console.error('[shake] failed to load plugin:', err)
+  import('@capgo/capacitor-shake').then(async ({ Shake }) => {
+    await Shake.start({ threshold: 3.5 })
+    Shake.addListener('shake', onShake)
   })
 }
