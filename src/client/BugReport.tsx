@@ -17,7 +17,7 @@ export function BugReport({ open, onClose, stackTrace }: Props) {
     if (!description.trim() && !stackTrace) return
     setSending(true)
     try {
-      await fetch('/api/bug-reports', {
+      const res = await fetch('/api/bug-reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -30,6 +30,10 @@ export function BugReport({ open, onClose, stackTrace }: Props) {
           stackTrace,
         }),
       })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || `Server error ${res.status}`)
+      }
       setSent(true)
       setTimeout(() => {
         setSent(false)
