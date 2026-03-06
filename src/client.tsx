@@ -14,6 +14,7 @@ import * as gameEvents from './client/gameEvents'
 import * as haptics from './client/haptics'
 import * as push from './client/push'
 import * as network from './client/network'
+import { App as CapApp } from '@capacitor/app'
 import { PlayerRing } from "./client/PlayerRing"
 import { MoodPicker } from './client/MoodPicker'
 import { onMessage } from './client/reducer'
@@ -64,6 +65,26 @@ function App({ gameId }: Props) {
       history.pushState(null, '', `/game/${pendingGameId}`)
       dispatchEvent(new PopStateEvent('popstate'))
     }
+    function extractGameId(url: string): string | null {
+      try {
+        const { pathname } = new URL(url)
+        const match = pathname.match(/^\/game\/([^/]+)/)
+        return match ? match[1] : null
+      } catch { return null }
+    }
+    function navigateToGame(id: string) {
+      history.pushState(null, '', `/game/${id}`)
+      dispatchEvent(new PopStateEvent('popstate'))
+    }
+    CapApp.getLaunchUrl().then(result => {
+      if (!result?.url) return
+      const id = extractGameId(result.url)
+      if (id) navigateToGame(id)
+    })
+    CapApp.addListener('appUrlOpen', ({ url }) => {
+      const id = extractGameId(url)
+      if (id) navigateToGame(id)
+    })
     const cleanupNetwork = network.listenNetwork(connected => {
       dispatch({ type: 'NETWORK_STATUS', online: connected })
     })

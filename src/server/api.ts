@@ -58,6 +58,14 @@ export function addStatic(app: express.Application) {
       }
     },
   }))
+  app.get('/.well-known/apple-app-site-association', (req, res) => {
+    res.json({
+      applinks: {
+        apps: [],
+        details: [{ appID: 'M86QA9WVD2.app.schellingpoints', paths: ['/game/*'] }]
+      }
+    })
+  })
   app.get('*path', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache')
     res.sendFile(path.resolve('dist/index.html'))
