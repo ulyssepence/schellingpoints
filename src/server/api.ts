@@ -46,9 +46,7 @@ export function addWebsockets(state: t.State, app: express.Application) {
 }
 
 export function addStatic(app: express.Application) {
-  if (process.env.NODE_ENV !== 'production') {
-    app.use('/static', express.static('static'))
-  }
+  app.use('/static', express.static('static'))
   app.use(express.static(path.resolve('dist'), {
     setHeaders(res, filePath) {
       if (filePath.endsWith('.html')) {
