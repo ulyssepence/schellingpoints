@@ -362,6 +362,13 @@ p {
     flex: 1;
 }
 
+.btn-primary {
+    background: var(--teal);
+    color: var(--black);
+    font-weight: 500;
+    border-color: var(--teal);
+}
+
 .topbar-actions {
     display: flex;
     gap: 8px;
@@ -382,6 +389,10 @@ p {
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 12px;
     padding: 16px;
+    margin: auto;
+    inset: 0;
+    width: fit-content;
+    height: fit-content;
 }
 
 .game-switcher-popover form {

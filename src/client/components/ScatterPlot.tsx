@@ -50,7 +50,7 @@ export function ScatterPlot({ positions, playerId, nameOf, guesses, melded }: {
         const targetX = PLOT_CENTER + dx
         const targetY = PLOT_CENTER + dy
         const isMe = id === playerId
-        const name = nameOf.get(id) ?? id
+        const name = nameOf.get(id) ?? ''
         const guess = guessOf.get(id) ?? ''
         const label = guess ? `${name}: "${guess}"` : name
         const color = `var(${playerColor(id).primary})`

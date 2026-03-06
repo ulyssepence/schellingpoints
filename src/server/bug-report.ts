@@ -58,7 +58,7 @@ export function addRoutes(app: express.Application) {
           'Content-Type': 'application/json',
           Accept: 'application/vnd.github+json',
         },
-        body: JSON.stringify({ title, body: bodyParts, labels: ['bug-report'] }),
+        body: JSON.stringify({ title, body: bodyParts }),
       })
       if (!response.ok) {
         const text = await response.text()

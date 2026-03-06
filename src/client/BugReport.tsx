@@ -56,10 +56,10 @@ export function BugReport({ open, onClose, stackTrace }: Props) {
           rows={4}
         />
         <div className="bug-report-actions">
-          <button className="btn" onClick={handleSubmit} disabled={sending}>
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={handleSubmit} disabled={sending}>
             {sent ? 'Sent!' : sending ? 'Sending...' : 'Send'}
           </button>
-          <button className="btn" onClick={onClose}>Cancel</button>
         </div>
       </div>
     </div>
