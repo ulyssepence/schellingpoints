@@ -1,4 +1,4 @@
-FROM oven/bun AS build
+FROM oven/bun:1.4.4 AS build
 WORKDIR /app
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
@@ -8,7 +8,7 @@ COPY . .
 RUN API_HOST=schellingpoints.app bun scripts/build.ts
 RUN bunx @capgo/cli bundle zip --path dist --name bundle && mv bundle dist/bundle.zip
 
-FROM oven/bun
+FROM oven/bun:1.4.4
 WORKDIR /app
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
